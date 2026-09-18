@@ -26,7 +26,7 @@ print(f"  MLT {MLT:6.1f} mm        mean length per turn")
 print("  (rounded edges take a few % off Ae - treat these as optimistic)")
 
 # ---- the operating point, from power_budget.py -----------------------------
-VIN, VOUT, IOUT, ETA = 29.3, 60.0, 3.0, 0.85   # low line, loaded: the worst case
+VIN, VOUT, IOUT, ETA = 29.3, 60.0, 2.5, 0.85   # low line, loaded: the worst case
 PIN  = VOUT*IOUT/ETA
 IL   = PIN/VIN                        # boost mode: inductor carries input current
 D    = 1 - VIN/VOUT

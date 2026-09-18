@@ -18,7 +18,8 @@ DIMS      = (113, 117, 70)   # mm
 # ---- what the bench supply has to be ---------------------------------------
 CH        = 2
 V_MAX     = 60.0
-I_MAX     = 3.0
+I_MAX     = 3.0      # the current cap
+P_MAX     = 150.0    # W per channel - the REAL limit. See the envelope below.
 V_MIN     = 2.0
 
 # ---- derating --------------------------------------------------------------
@@ -60,9 +61,9 @@ print(f"  {VA:.0f} VA x {CAP_INPUT:.2f} = {dc:.0f} W DC usable per transformer")
 print(f"  (350 VA is NOT 350 W. The rectifier takes the difference.)")
 
 rule("3. One channel, or two, per transformer")
-out_ch  = V_MAX * I_MAX
+out_ch  = P_MAX
 need_ch = out_ch / ETA_CONV
-print(f"  one channel at {V_MAX:.0f} V x {I_MAX} A = {out_ch:.0f} W out")
+print(f"  one channel at {P_MAX:.0f} W out")
 print(f"    -> {need_ch:.0f} W DC in -> {need_ch/CAP_INPUT:.0f} VA of transformer")
 print(f"    against {dc:.0f} W available: margin {dc - need_ch:+.0f} W  "
       f"({'fits' if need_ch < dc else 'SHORT'})")
@@ -96,3 +97,25 @@ print(f"  mains draw: {CH} x {VA:.0f} VA / 120 V = {CH*VA/120:.1f} A")
 print(f"  mass of iron alone: {CH*MASS:.1f} kg")
 print("  The existing enclosure has one 40 mm fan, sized to blow over a single")
 print("  cool switching supply. It is not the right box for this.")
+
+
+rule("7. The envelope - it is power limited, not current limited")
+avail = dc*ETA_CONV
+print(f"  absolute ceiling: {dc:.0f} W DC x {ETA_CONV} = {avail:.0f} W out")
+print(f"  specified at {P_MAX:.0f} W, which leaves {(VA*CAP_INPUT - P_MAX/ETA_CONV):.0f} W of DC headroom\n")
+print(f"{'Vout':>7} {'I':>8} {'power':>8}")
+for v in (12, 24, 40, 50, 55, 60):
+    i = min(I_MAX, P_MAX/v)
+    print(f"{v:>5} V {i:>6.2f} A {v*i:>6.0f} W"
+          f"   {'full 3 A' if i >= I_MAX else 'power limited'}")
+print(f"  corner point: {I_MAX} A up to {P_MAX/I_MAX:.0f} V, tapering to"
+      f" {P_MAX/V_MAX:.1f} A at {V_MAX:.0f} V")
+print("""
+  A flat current derate would have thrown the bottom of the range away: the
+  transformer does not care about amps, it cares about watts. 3 A at 12 V is
+  36 W and nothing to it.
+
+  The inductor is sized by the WORST case, which is boost at low line and full
+  power - 6.02 A - not by the current cap. In buck mode the inductor carries
+  the OUTPUT current, so 3 A there is well under it. One design covers the
+  whole envelope.""")

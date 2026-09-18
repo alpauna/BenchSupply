@@ -17,8 +17,8 @@ import math
 MU0 = 4*math.pi*1e-7
 
 # ---- the operating point (docs/power-chain.md) ------------------------------
-L_TARGET = 34.6e-6          # H, wanted AT PEAK CURRENT, 200 kHz
-I_DC, I_PK, DI = 7.23, 8.31, 2.17
+L_TARGET = 41.5e-6          # H, wanted AT PEAK CURRENT, 200 kHz
+I_DC, I_PK, DI = 6.02, 6.93, 1.81   # 60 V x 2.5 A, derated from 3.0
 I_AC = DI/math.sqrt(12)
 I_RMS = math.sqrt(I_DC**2 + I_AC**2)
 RHO, DELTA = 1.72e-8, 0.148          # copper; skin depth in mm at 200 kHz
@@ -93,13 +93,13 @@ print("""
   is paid back several times over in the core. Lower mu, lower dB, less loss.
   Check the vendor's loss curves for magnitude; the direction is not in doubt.
 
-  => 0254 at 60u, 22 turns.""")
+  => 0254 at 60u, 24 turns.""")
 
 # =============================================================================
 # The winding
 # =============================================================================
-print("\n=== Wire, for 22 turns on 0254 ===")
-N60 = 22
+print("\n=== Wire, for 24 turns on 0254 ===")
+N60 = 24
 d_max = math.pi*ID/(N60 + math.pi)
 print(f"  I_rms {I_RMS:.2f} A ({I_DC:.2f} DC + {I_AC:.2f} AC)")
 print(f"  fattest bundle that still gives {N60} turns in one layer:"
@@ -122,8 +122,8 @@ for n, g in ((10,25),(5,20),(3,18),(2,16),(1,14)):
 print("""
   P_ac is milliwatts everywhere, even solid AWG14 - the AC is 9% of the
   current, so skin effect is not what sizes this wire. Strand it because
-  2.5 mm^2 of solid copper will not bend round the hole twenty-two times.
+  2.5 mm^2 of solid copper will not bend round the hole twenty-four times.
 
   => 3 x AWG18 twisted, grade 2 heavy build, Class 180 (H).
-     Cut ~1.2 m per strand. Wind 23 turns, measure, remove one if it reads
+     Cut ~1.3 m per strand. Wind 25 turns, measure, remove one if it reads
      high - and do not pot it until it measures right.""")

@@ -103,7 +103,7 @@ print("  SPI, not I2C: optos are unidirectional and I2C's SDA is not.")
 print("  Switch state is free - the daisy-chain output returns the PREVIOUS")
 print("  word on the MISO opto already there for the ADC, so the Pico can")
 print("  check that what it sent is what latched.")
-I = 3.0
+I = 2.5      # derated from 3.0
 print(f"\n{'shunt':>8} {'V at 3A':>9} {'P':>8} {'gain for 3.3V':>14} {'12-bit LSB':>12}")
 for r in (0.010, 0.020, 0.050):
     v=r*I; print(f"{r*1000:>6.0f}m {v*1000:>7.1f}mV {I*I*r*1000:>6.0f}mW"

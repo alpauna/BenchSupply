@@ -26,7 +26,7 @@ Control electronics and cooling are in [`control.md`](control.md).
 |---|---|
 | Channels | **2** |
 | Range | **2 V to 60 V**, adjustable |
-| Current | **3 A** per channel |
+| Current | **3 A**, to a **150 W per channel** ceiling — see the envelope |
 | Regulation | both channels regulated |
 | Isolation | **channel to channel**, so they can be wired in series for ±60 V |
 
@@ -66,15 +66,55 @@ budget comes out about 60 % too optimistic.
 ## One transformer is one channel
 
 ```
-one channel, 60 V x 3 A  = 180 W out
-  -> 212 W DC in at 85%  -> needs 342 VA      against 217 W available: +5 W
-both channels            = 360 W out
-  -> needs 683 VA                             one 350 VA is 51% of that
+one channel, 60 V x 2.5 A = 150 W out
+  -> 176 W DC in at 85%   -> needs 285 VA     against 217 W available: +41 W
+both channels             = 300 W out
+  -> needs 569 VA                             one 350 VA is 61% of that
 ```
 
-**So: one transformer per channel.** The margin on a single channel is 5 W,
-which is nothing — but it is the right side of zero, and it does not have to
-cover both channels at once.
+**So: one transformer per channel — two ST-1228-T350Q.**
+
+### It is power limited, not current limited
+
+```
+   Vout        I    power
+   12 V   3.00 A     36 W   full 3 A
+   40 V   3.00 A    120 W   full 3 A
+   50 V   3.00 A    150 W   full 3 A
+   55 V   2.73 A    150 W   power limited
+   60 V   2.50 A    150 W   power limited
+```
+
+**3 A up to 50 V, tapering to 2.5 A at 60 V.** The transformer does not care
+about amps, it cares about watts — 3 A at 12 V is 36 W and nothing to it. A flat
+2.5 A derate would have thrown the bottom of the range away for no reason.
+
+The inductor is sized by the **worst case, not the current cap**: boost at low
+line and full power is 6.02 A, and in buck mode the inductor carries the
+*output* current, so 3 A there is well under it. One design covers the whole
+envelope.
+
+#### Why 150 W and not the 184 W the transformer can just about give
+
+3 A at the full 60 V is 180 W, and one transformer *just* covers it — 342 VA
+needed against 350 available, a 2 % margin. The problem is what that margin
+consists of:
+
+```
+ converter eff    DC in   VA needed    margin
+          90%     200W        323      +27   ok
+          85%     212W        342       +8   ok      <- the assumption
+          82%     220W        354       -4   OVER
+```
+
+**Converter efficiency was the entire margin**, and the cap-input factor
+multiplies it — at 0.58 rather than 0.62 it is over at any efficiency. Both are
+estimates.
+
+Capping at 150 W buys **+41 VA** and moves efficiency from being the deciding
+variable to being a detail. It costs only the top corner — the last half amp
+above 50 V — and the transformer's thermal fuse stops being something you
+design against.
 
 ## Isolation comes from the iron, not from the converters
 
@@ -87,7 +127,7 @@ there are only two places to put it:
 | **In the converters** — two isolated flybacks | custom-wound transformer each, snubber, optocoupler feedback. The hard path |
 | **In the iron** — two mains transformers | one more 2.9 kg toroid, and the converters become ordinary non-isolated buck-boosts |
 
-Since 3 A per channel already forces a second transformer for power reasons,
+Since 2.5 A per channel already forces a second transformer for power reasons,
 **the isolation is free.** That is the argument for buying the second ST-1228
 rather than designing two flybacks: it is not really about the iron, it is about
 not having to carry a safety barrier inside a switching converter.
@@ -129,8 +169,9 @@ no second regulator to swap in.
 ## The inductor
 
 Hand-wound, one per channel. At the design point — 29.3 V in, 60 V out, 3 A,
-200 kHz — it is **34.6 µH carrying 7.23 A DC with 2.17 A of ripple**, storing
-1.19 mJ.
+200 kHz — it is **41.5 µH carrying 6.02 A DC with 1.81 A of ripple**, storing
+1.00 mJ. (More inductance than the 3 A case, and less current: derating raises
+L because the ripple budget is a fraction of a smaller DC current.)
 
 ### Powder cores lose permeability under DC bias, and it changes the answer
 
@@ -162,7 +203,7 @@ that was actually chosen is done properly, off the catalogue.
 | Core | **Kool Mu toroid 0254** — 40.77 OD × 23.32 ID × 15.37 mm |
 | Catalogue | AL **81 nH/T²** at 60µ, Ae **107 mm²**, le 98.4 mm, Ve 10 600 mm³ |
 | Permeability | **60µ** |
-| Turns | **22** for 34.6 µH at 8.31 A peak — wind 23 and measure |
+| Turns | **24** for 41.5 µH at 6.93 A peak — wind 25 and measure |
 | Wire | **3 × AWG18** twisted, grade 2 heavy build, Class 180 (H) |
 | Hƒ variant | **drop-in** — see below. Take it if stocked at a similar price |
 
@@ -174,11 +215,11 @@ this wound at 20 turns instead of 22.
 
 ```
   mu     AL    N       H  mu left      dB  bundle max      Cu    P_cu    Emax
-  40    54n   27  28.9Oe      87%  25.8mT      2.42mm   1.43m   0.52W   105mJ
-  60    81n   22  23.8Oe      85%  31.3mT      2.87mm   1.18m   0.43W    70mJ
-  75   101n   20  21.5Oe      84%  34.7mT      3.14mm   1.06m   0.39W    56mJ
-  90   121n   19  19.8Oe      82%  37.6mT      3.36mm   0.98m   0.36W    47mJ
- 125   168n   16  17.1Oe      80%  43.6mT      3.81mm   0.85m   0.31W    34mJ
+  40    54n   29  26.1Oe      88%  23.8mT      2.24mm   1.55m   0.39W   105mJ
+  60    81n   24  21.5Oe      87%  28.9mT      2.67mm   1.28m   0.32W    70mJ
+  75   101n   22  19.4Oe      85%  32.0mT      2.92mm   1.15m   0.29W    56mJ
+  90   121n   20  17.9Oe      84%  34.8mT      3.14mm   1.06m   0.27W    47mJ
+ 125   168n   17  15.4Oe      82%  40.3mT      3.57mm   0.92m   0.23W    34mJ
 ```
 
 **What did not decide it: DC bias.** Every permeability lands at 80–85 %,
@@ -192,7 +233,7 @@ loss coefficient rises with permeability as well, so the 0.12 W of copper that
 total loss. Check the vendor's loss curves for the magnitude; the direction is
 not in doubt.
 
-Energy capacity at 60µ is **70 mJ against 1.19 mJ needed** — 59× — so
+Energy capacity at 60µ is **70 mJ against 1.00 mJ needed** — 70× — so
 saturation is nowhere near the binding constraint. The binding constraint is
 loss.
 
@@ -210,7 +251,7 @@ the two catalogue rows are identical where they overlap:
 ```
 
 le, Ae, Ve and the dimensions match as well, so **nothing in this design
-changes** — same 22 turns, same 3 × AWG18. And Hƒ stopping at 60µ costs nothing
+changes** — same 24 turns, same 3 × AWG18. And Hƒ stopping at 60µ costs nothing
 here, because 60µ is where the ΔB argument landed anyway. (26µ would need 37
 turns and cap the bundle at 1.84 mm, so it will not take the wire.)
 
@@ -233,23 +274,23 @@ it differs, the turns move — that is the one figure not to take on trust.
 
 ```
 winding         Cu mm2   bundle      DCR    P_dc    P_ac      J   fits
-10 x AWG25       1.62   1.79mm   12.1mR   0.63W     5mW   4.5    yes
-5 x AWG20        2.59   2.26mm    7.7mR   0.40W     5mW   2.8    yes
-3 x AWG18        2.47   2.21mm    8.1mR   0.42W     6mW   2.9    yes
-1 x AWG14        2.08   2.03mm    9.5mR   0.50W    11mW   3.5    yes
+10 x AWG25       1.62   1.79mm   13.2mR   0.48W     4mW   3.7    yes
+5 x AWG20        2.59   2.26mm    8.4mR   0.30W     4mW   2.3    yes
+3 x AWG18        2.47   2.21mm    8.8mR   0.32W     5mW   2.4    yes
+1 x AWG14        2.08   2.03mm   10.4mR   0.38W     8mW   2.9    yes
 ```
 
-22 turns leaves room for a bundle up to **2.91 mm** in one layer, which is the
+24 turns leaves room for a bundle up to **2.70 mm** in one layer, which is the
 payoff for the bigger core — the drawer core's 15.8 mm hole allowed 1.79 mm.
 That headroom is what drops the current density from 4.5 to 2.9 A/mm² and takes
 a third off the copper loss for nothing.
 
 **P_ac is milliwatts in every row, including solid AWG14.** The ripple is
-0.63 A RMS against 7.23 A of DC — the AC is 9 % of the current, so skin effect
+0.52 A RMS against 6.02 A of DC — the AC is 9 % of the current, so skin effect
 is not what sizes this wire. Strand it because 2.5 mm² of solid copper will not
 bend round that hole twenty-two times. Three strands is the fewest that still
-handles easily; twist them loosely and treat them as one wire. Cut ~1.2 m per
-strand — 22 turns of a 52 mm mean turn is 1.18 m, plus tails and the slack for
+handles easily; twist them loosely and treat them as one wire. Cut ~1.3 m per
+strand — 24 turns of a 52 mm mean turn is 1.28 m, plus tails and the slack for
 the turn you may remove.
 
 ### The cores already in the drawer do not work
@@ -260,7 +301,7 @@ Worth writing down so it is not re-litigated:
 |---|---|
 | "T30-2", measured 24.5 × 15.8 × 12.7 | **T30 is an inch code — 0.30 in = 7.8 mm OD.** The measured core is 3× that in every dimension and 30× the volume, so it is not a T30 of anything. And Micrometals mix 2 is iron powder, not ferrite, so the label contradicts itself |
 | …if it is really mix 2 (µ10) | 56 turns needed, 25 fit. µ10 is an RF material, far too low for a 35 µH power inductor in this window |
-| …if it is Mn-Zn ferrite (µ~2000), which a 25 × 15 × 12 ring usually is | stores **0.11 mJ** against 1.19 mJ needed — saturates on the first switching cycle |
+| …if it is Mn-Zn ferrite (µ~2000), which a 25 × 15 × 12 ring usually is | stores **0.11 mJ** against 1.00 mJ needed — saturates on the first switching cycle |
 | green cores, also on hand, "a little smaller" | never measured. Green is usually a power material (Micrometals -52, or a sendust) and would probably work — but the call was to buy to the spec above rather than reverse-engineer the drawer |
 
 **Keep the ferrite rings.** Two switching converters and 5.8 A of mains draw
