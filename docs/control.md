@@ -243,6 +243,78 @@ This is the same argument as the main loop, and it matters more here: a short
 circuit on the output is exactly the case where a millisecond-scale software
 response is too slow.
 
+## Decided: the isolated side stays dumb
+
+Per-channel microcontrollers were considered — a small MCU on each switcher
+board, talking to the Pico over a serial link — and rejected. **The isolated
+side holds no firmware.** Only switches, an ADC and a sense amp, doing what they
+are told over SPI.
+
+### "Offload the work" is not an argument, because there is no work
+
+```
+BUS OCCUPANCY - how busy the wires are:
+  V/I readback, 32 bits, 10 Hz, x2 channels     12.8%
+  1-Wire read, 3 sensors, 1 Hz                   1.5%
+  setpoint, only on knob turns                   0.1%
+  TOTAL                                         14.4%
+
+CPU OCCUPANCY - SPI on DMA, 1-Wire on PIO
+  well under 1% of ONE of two cores at 125 MHz
+```
+
+The DS18B20's 750 ms conversion is **latency, not occupancy** — issue the
+convert, go away, come back. Blocking on it would be a firmware bug, not a
+reason to add silicon.
+
+### What would genuinely argue for it, if this is ever revisited
+
+- **2 optos per channel instead of 5** — 4 total rather than 10
+- **Calibration lives on the channel**, so a board carries its own constants
+- **Local housekeeping shares the channel's ground**, which would make the
+  sensor-isolation problem vanish rather than be designed around
+
+### Why not, anyway
+
+It is roughly a wash on parts — six optos saved against two MCUs, their
+supplies and decoupling — and plainly not a wash on firmware: two more
+codebases, two more bootloaders, and version skew between them and the Pico. It
+also does not touch the hard part, since [CC and cycle-by-cycle
+protection](#current-limit-is-analog-too) stay analog either way.
+
+**And it would weaken the fail-safe.** "Switches open = 2 V" is currently
+*structural*: it holds when the isolated side is unpowered, resetting, or being
+reflashed, because it is a property of the resistor network rather than of any
+code. A hung MCU holding a high setpoint is a state that cannot exist today, and
+adding one would create it.
+
+A side that can only do what it is told, with its safe default built into the
+divider, is far easier to reason about than one running its own program.
+
+### RS-232 would have broken the isolation outright
+
+Worth recording as a trap rather than a preference. **RS-232 is
+ground-referenced** — ±12 V signalling against a common return — so wiring it
+between the Pico and a channel board ties those grounds together and destroys
+the barrier. That is the same failure as [powering the isolated side from the
+control rail](#what-the-module-must-not-power-the-isolated-sides) or bolting a
+sensor to a heatsink: the fourth way to give it away by accident.
+
+Isolated RS-232/RS-485 transceivers exist, but they are digital isolators with a
+transceiver bolted on — you pay for the isolation either way, so pay for it with
+optos.
+
+If MCUs ever do go in, the link is **optical UART at 9600**. 19200 is already
+marginal through a cheap opto at 52 µs per bit, and nothing here needs the
+speed:
+
+```
+    2400 baud ->  416.7 us per bit   fine
+    9600 baud ->  104.2 us per bit   fine
+   19200 baud ->   52.1 us per bit   marginal
+  115200 baud ->    8.7 us per bit   needs a fast opto
+```
+
 ## Cooling
 
 ```
