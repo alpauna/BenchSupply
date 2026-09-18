@@ -1,0 +1,17 @@
+Ref,Qty,Value,Description,Rating / key spec,Package,Suggested part,Notes
+J1,1,-,IEC C14 inlet + rocker + fuse drawer,10 A 250 V; 58 x 48 face; 50 x 29 x 19 rear flange; M3 ears at 40 mm,panel,BIQU 10 A 250 V,Back wall. Its terminals are the reason the printed shield exists
+F0,1,10 A T,Cartridge fuse 5 x 20 mm,250 V time-delay,in J1's drawer,-,Carries 5.99 A with both channels at full output. 10 A is ALSO the inlet's own ceiling - no room above it
+F1;F2,2,5 A T,Cartridge fuse 5 x 20 mm,250 V time-delay,5 x 20,-,One per toroid primary; 2.92 A each. 4 A derates to 3.6 at 45 C and blows on a warm day
+F3,1,1 A T,Cartridge fuse 5 x 20 mm,250 V time-delay,5 x 20,-,5 V control module; 0.16 A. 5.6x margin
+FH1-FH3,3,-,PCB fuse holder 5 x 20 mm,250 V; >= 10 A,PCB,-,MAINS CANNOT USE BLADE FUSES - 120 VAC needs a 250 V cartridge
+RLY_MAIN,2,-,Power relay SPST-NO,10 A 250 VAC contacts; 5 V coil ~80 mA; >= 4 kV coil-to-contact,PCB,-,Closes into an ALREADY ENERGISED transformer so it never sees inrush. A proper mains part - not a signal relay printing 250 V on the contacts
+RLY_SOFT,2,-,Power relay SPST-NO,5 A 250 VAC contacts; 5 V coil ~80 mA; >= 4 kV coil-to-contact,PCB,-,Carries 2.92 A for 300 ms only and closes into inrush already limited to 17 A - can be the smaller part
+R1;R2,2,10R,Wirewound resistor,20 W; non-inductive preferred,chassis or PCB power,-,Soft start. 85 W while in circuit - fine as a 0.3 s pulse (26 J) and fatal if it never ends. Hence the one-shot below
+U1,1,NE556,Dual timer - monostable,5 V supply,DIP-14 / SO-14,NE556,ONE-SHOT per channel driving RLY_SOFT. This is the whole safety argument: RLY_SOFT drops out by itself whether or not RLY_MAIN closed
+R3;R4,2,270k,Timing resistor,1%,0805,-,t = 1.1 x R x C = 297 ms with C = 1u
+C1;C2,2,1u,Timing capacitor,film or C0G; 10 V,0805,-,Not electrolytic - the period should not drift with age or temperature
+D1-D4,4,-,Flyback diode,100 V; 1 A,SOD-123 / DO-41,1N4007,ACROSS EVERY COIL. A relay coil is far more inductive than a fan and the 2N7002 driver board does not carry one
+Q1-Q4,4,-,N-channel MOSFET - coil drive,30 V; 28 mOhm at Vgs 4.5 V; true logic level,SOT-23,AO3400A,On the 2N7002 driver boards WITH THE FET SWAPPED. 80 mA is most of a 2N7002's 115 mA rating before the turn-off spike
+-,4,-,2N7002 driver board,10.9 x 17.1 mm; M2 mount; 220R gate + 10k pulldown,-,hardware/2N7002 Driver,Keep the boards - the 10k pulldown holds the gate off while the Pico's GPIOs are high-impedance during boot
+TB1-TB3,3,-,Mains terminal block,300 V; 10 A; 5.08 mm,PCB,-,Two toroid primaries and the 5 V module's ACL/ACN
+E1,1,-,Earth stud / ring terminal,M4,chassis,-,C14 earth pin to the supply earth terminals - star point. The enclosure is plastic but the pin still has to go somewhere

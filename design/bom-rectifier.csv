@@ -1,0 +1,10 @@
+Ref,Qty,Value,Description,Rating / key spec,Package,Suggested part,Notes
+F1,1,20 A,Blade fuse,58 V TYPE - not standard 32 V,ATO/ATC,-,Secondary. Winding carries 10.1 A rms; 20 A derated to the automotive 75% is 15 A continuous
+F2,1,15 A,Blade fuse,58 V TYPE - not standard 32 V,ATO/ATC,-,DC rail. 6.02 A carried. Cannot save a shorted FET - it stops the bulk bank emptying into the wreckage afterwards
+FH1;FH2,2,-,Blade fuse holder,PCB or inline; >= 30 A,-,-,"STANDARD BLADE FUSES ARE 32 VDC AND THIS RAIL REACHES 44.3 V. Above rating the arc does not self-extinguish: the fuse does not clear, it keeps burning"
+BR1,1,-,Bridge rectifier,35 A; 200 V; bolt-down,GBPC / KBPC,GBPC3502,~12 W - two diodes conduct in series at all times. NEEDS A HEATSINK. Not a DIP bridge
+HS1,1,-,Heatsink for BR1,<= 5 C/W,-,-,12 W is the same class of heat as the whole FET bank
+C1-C4,4,4700u,Electrolytic capacitor,63 V; 105 C; low ESR; snap-in,snap-in,-,PARALLELED FOR RIPPLE CURRENT NOT CAPACITANCE. 8800 uF covers the ripple voltage but a cap-input filter puts 9-12 A rms through them and one can is rated 3-4 A
+R1,1,4k7,Bleeder resistor,1 W,axial,-,18800 uF at 40 V holds 15 J that stays there after power-off with the converter unplugged. 40 V is not a shock hazard; 15 J into a dropped tool still is
+TB1,1,-,Terminal block,300 V; 20 A; 7.5 mm,PCB,-,28 VAC in from the toroid secondary - gray 14 AWG
+TB2,1,-,Terminal block,100 V; 15 A; 7.5 mm,PCB,-,DC rail out to the converter. Heavy pair but its inductance does not matter - 6 A dc with 120 Hz ripple is not a switching loop

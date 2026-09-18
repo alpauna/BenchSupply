@@ -1,0 +1,29 @@
+Ref,Qty,Value,Description,Rating / key spec,Package,Suggested part,Notes
+U1,1,LT8705,Synchronous 4-switch buck-boost controller,2.8-80 V in; 1.3-80 V out; 100-400 kHz; quad N-ch drivers; four servo loops,QFN-38 / TSSOP-38,LT8705EFE,60 V out rules out LM5176 (55 V) and leaves LT3790 at exactly its limit. 80 V gives 20 V of margin on both sides
+QA-QD,4,-,N-channel MOSFET,100 V; 20-30 mOhm; Qg <= 50 nC,DPAK / D2PAK / TO-220,STD26NF10 or STP40NF10L,"CONFIRM Qg FROM THE DATASHEET - it is the binding parameter and the least reliably quoted. At 60 V switching loss beats conduction loss, so a 10 mOhm part at 150 nC loses to a 25 mOhm part at 40 nC"
+L1,1,41.5 uH,Hand-wound toroidal inductor,AL 81 nH/T2 +/-8%; Ae 107 mm2; le 98.4 mm; Ve 10600 mm3; 60u,40.77 OD x 23.32 ID x 15.37 HT,Magnetics 0077083A7 (DigiKey 4616-0077083A7-ND),24 turns of 3 x AWG18 twisted. WIND 25 AND MEASURE - the +/-8% AL is two turns of spread on its own. Custom footprint: two pads plus a keepout for a 43 mm wound coil
+-,3,-,Magnet wire AWG18,grade 2 heavy build; Class 180 (H),-,-,~1.3 m per strand. Stranded so it bends round a 23 mm hole - NOT for skin effect: the AC is 9% of the current and P_ac is milliwatts even in solid AWG14
+Cin,4,10u,Ceramic capacitor,100 V; X7R,1210,-,"AT THE FETS AND SHORT. This is what makes splitting the rectifier onto its own board safe - Cin takes all the di/dt, the bulk caps only refill it"
+Cout,2,470u,Polymer / low-ESR electrolytic,100 V,radial,-,With the ceramics below gives ~130 uF for 50 mV of boost-mode ripple at 2.5 A
+Cout_c,4,22u,Ceramic capacitor,100 V; X7R,1210,-,High-frequency half of the output bank
+Rsen_IN,1,5 mOhm,Current sense resistor,1 W; 1%; 4-terminal preferred,2512,-,50 mV at 7.4 A = THE INPUT CURRENT LIMIT. This is what stops the transformer being overdrawn and makes the 150 W envelope a hardware property
+Rsen_OUT,1,15 mOhm,Current sense resistor,0.5 W; 1%; 4-terminal preferred,2512,-,"50 mV at 3 A = the user-set CC limit. KELVIN both sense pairs from the pad ends, not from the power path"
+Rtop,1,48.7k,Precision resistor,0.1%; 25 ppm,0805,-,Sets the whole divider ratio against FBOUT's 1.207 V
+Rfix,1,75k,Precision resistor,0.1%,0805,-,"THE FIXED BRANCH. Sets 2 V with every switch OPEN - unpowered, in reset, mid-reflash. Wire the switches to ADD conductance only"
+R0-R9,10,1M05 523k 261k 130k 64k9 32k4 16k2 8k06 4k02 2k00,Divider branch resistors - binary weighted,0.1%; 25 ppm,0805,-,E96 nearest to the ideal binary conductances; branch errors 0.0-1.3%. Steps stay near-uniform and the Pico calibrates code-to-volts from its own ADC readback at bring-up
+U2;U3,2,ADG714,Octal SPST analog switch - SPI,2.5 Ohm on-resistance; 2.7-5.5 V,TSSOP-20,ADG714BRUZ,IS the serial-to-parallel converter AND the switch array. 2.5 Ohm is 0.25% error at 60 V where Rbot is 1k; a CD4051 at 100 Ohm would be 10%. VERIFY THE POWER-UP STATE IS ALL-SWITCHES-OPEN
+U4,1,-,SPI ADC,12-bit; 4 channel,SOIC-14,MCP3204,"Vout divider, Iout, Iin, and the SRVO_* loop-status pins so the Pico can display CV / CC / input-limited"
+U5;U6,2,INA293,High-side current sense amplifier,>= 80 V common mode; gain 50,SOT-23-8,INA293A2,THE COMMON MODE IS THE OUTPUT and it goes to 60 V. A garden-variety 26 V part will not do
+OK1-OK5,5,-,Optocoupler,CTR >= 80% at If 5 mA; 5 kV isolation,DIP-4 / SOP-4,PC817,FOUR OUT with LEDs on the Pico side (SCK MOSI CS_SW CS_AD) and ONE BACK with its LED on THIS side (MISO). Nothing electrical bridges the gap - these channels stack in series
+-,5,330R,Opto LED resistor,1%,0805,-,If = 5 mA from a 3.3 V GPIO. RP2040 sources 12 mA max
+-,5,10k,Opto pull-up,1%,0805,-,"Sets the edge rate. Tens of microseconds - run the SPI clock at a few kHz, not at SPI speeds"
+U7,1,-,60 V buck regulator,44 V in; 12 V out; ~100 mA,-,-,Local bias from THIS channel's own rail. NOT from the control board's 5 V - that would wire the two channels together and undo the isolation
+U8,1,-,5 V LDO,12 V in; 5 V out; 100 mA,SOT-223,-,Feeds ADG714 ADC INA and the opto pull-ups
+-,1,-,EXTVCC feed,12 V from U7,-,-,Qg x 4 x 200 kHz is 24-40 mA out of INTVCC. Feeding EXTVCC externally takes the internal regulator out of the argument
+Rg1-Rg4,4,2R2,Gate resistor,1%,0805,-,Damps the gate ring. Bigger slows switching and switching TIME is what costs at 60 V
+Cb1;Cb2,2,100n,Bootstrap capacitor,100 V; X7R,0603,-,BOOST1 to SW1 and BOOST2 to SW2
+Db1;Db2,2,-,Bootstrap diode,100 V; fast,SOD-123,-,To GATEVCC
+D_rev,1,-,Reverse protection diode,100 V; >= 3 A,-,-,"ACROSS the output - anti-parallel, cathode to +, reverse-biased in normal use and carrying nothing. Only conducts if the other channel drives this one backwards while it is off or shorted. NOTHING GOES IN SERIES WITH THE OUTPUT"
+TB1,1,-,Terminal block,100 V; 15 A; 7.5 mm,PCB,-,DC rail in from the rectifier board
+TB2,1,-,Terminal block,100 V; 10 A; 7.5 mm,PCB,-,Output to the front panel
+J1,1,-,Header - opto barrier,6-pin,2.54 mm,-,SCK MOSI CS_SW CS_AD MISO GND to the control board
