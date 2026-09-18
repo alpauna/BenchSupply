@@ -27,7 +27,9 @@ RHO, DELTA = 1.72e-8, 0.148          # copper; skin depth in mm at 200 kHz
 # Read off the vendor's DC bias curves - confirm for the exact part.
 BIAS = {
  40:  [(0,100),(10,97),(20,92),(30,86),(50,74),(80,58),(120,42)],
- 60:  [(0,100),(10,95),(20,88),(30,80),(50,65),(80,50),(120,35)],
+ # 60u is anchored on the 0077083A7 datasheet: 80% at 39 Oe, 50% at 87 Oe,
+ # both MINIMUMS, so a real core does better. The others are still estimates.
+ 60:  [(0,100),(20,90),(39,80),(60,66),(87,50),(120,38)],
  75:  [(0,100),(10,93),(20,85),(30,77),(50,61),(80,46),(120,32)],
  90:  [(0,100),(10,92),(20,82),(30,73),(50,57),(80,42),(120,29)],
  125: [(0,100),(10,88),(20,76),(30,66),(50,50),(80,35),(120,24)],
@@ -69,7 +71,8 @@ print("  The rounded edges cost 20% of Ae. That is turns, not a rounding error."
 print(f"\n=== Which permeability? (0254, {L_TARGET*1e6:.1f} uH at {I_PK} A) ===")
 print(f"{'mu':>4} {'AL':>6} {'N':>4} {'H':>7} {'mu left':>8} {'dB':>7}"
       f" {'bundle max':>11} {'Cu':>7} {'P_cu':>7} {'Emax':>7}")
-MLT = 2*(HT + (OD-ID)/2)
+MLT = 54.3          # datasheet, winding length per turn at 20% fill
+                    # (its 0% figure, 48.2, equals 2*(HT+(OD-ID)/2) exactly)
 BUNDLE = 2.21                            # 3 x AWG18, twisted
 for mu in (40, 60, 75, 90, 125):
     AL = AL_0254[mu]
@@ -119,6 +122,17 @@ for n, g in ((10,25),(5,20),(3,18),(2,16),(1,14)):
     print(f"{f'{n} x AWG{g}':<14} {A:>6.2f} {d:>6.2f}mm {R*1e3:>6.1f}mR"
           f" {I_DC**2*R:>6.2f}W {I_AC**2*R*rac*1e3:>5.0f}mW"
           f" {I_RMS/A:>5.1f} {'yes' if d<=d_max else 'NO':>6}")
+# ---- core loss, from the datasheet's own figure ---------------------------
+P100, B_REF, F_REF = 750.0, 100.0, 100e3     # mW/cm3 max at 100 kHz, 100 mT
+def core_loss(dB_mT, f, Ve_mm3):
+    return P100*((dB_mT/2)/B_REF)**2.1*(f/F_REF)**1.4 * Ve_mm3/1000 / 1000
+dB60 = L_TARGET*DI/(24*AE*1e-6)*1e3
+print(f"\n=== Core loss at 60u, 24 turns ===")
+print(f"  datasheet {P100:.0f} mW/cm3 max at 100 kHz / 100 mT")
+print(f"  ours: {dB60/2:.2f} mT peak at 200 kHz -> {core_loss(dB60, 200e3, VE):.2f} W")
+Rw = RHO*(MLT*1e-3)*24/2.47e-6
+print(f"  plus {I_DC**2*Rw:.2f} W copper = {I_DC**2*Rw + core_loss(dB60,200e3,VE):.2f} W total")
+
 print("""
   P_ac is milliwatts everywhere, even solid AWG14 - the AC is 9% of the
   current, so skin effect is not what sizes this wire. Strand it because

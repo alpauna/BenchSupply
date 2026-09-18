@@ -423,16 +423,73 @@ Those AL figures are worked out from the outside dimensions, which is fine for
 choosing a size but not for winding one — see the 20 % Ae error below. The core
 that was actually chosen is done properly, off the catalogue.
 
-### The core: Magnetics Kool Mu toroid, core data 0254, 60µ
+### The core: Magnetics **0077083A7** — Kool Mu 0254, 60µ
+
+Ordering code confirmed from [the datasheet](datasheets/KoolMu-0077083A7.pdf),
+which is in this repo because finding it was genuinely difficult. Note `083` is
+the **ordering code**, not the core-data number — the core data is 0254, and
+guessing the part number from it would have failed. Hence the DigiKey number
+below: the search is the hard part, not the decision.
 
 | | |
 |---|---|
-| Core | **Kool Mu toroid 0254** — 40.77 OD × 23.32 ID × 15.37 mm |
-| Catalogue | AL **81 nH/T²** at 60µ, Ae **107 mm²**, le 98.4 mm, Ve 10 600 mm³ |
+| Part | **0077083A7**, black coated, 61 g |
+| DigiKey | **4616-0077083A7-ND** |
 | Permeability | **60µ** |
-| Turns | **24** for 41.5 µH at 6.93 A peak — wind 25 and measure |
+| AL | **81 nH/T² ± 8 %** |
+| Ae / le / Ve | 107 mm² / 98.4 mm / 10 600 mm³ |
+| Dimensions | OD 40.77 max, ID 23.32 min, HT 15.37 max (coated) |
+| Window | 427 mm² |
+| Turns | **24** for 41.5 µH at 6.93 A peak — **wind 25 and measure** |
 | Wire | **3 × AWG18** twisted, grade 2 heavy build, Class 180 (H) |
-| Hƒ variant | **drop-in** — see below. Take it if stocked at a similar price |
+| Coating | continuous to 200 °C, Curie 500 °C |
+| Hƒ variant | **drop-in** — see below |
+
+Every figure the design was built on matches the datasheet exactly.
+
+#### The DC bias curve is better than assumed — and it was the figure on trust
+
+```
+  datasheet minimums:  80% of initial mu at 39 Oe,  50% at 87 Oe
+  the estimate used:   80% at 30 Oe,                50% at 80 Oe
+```
+
+The real core holds up **better** than the interpolation table assumed, and
+those are minimums. At our 21.5 Oe that is **89 %** rather than 87, and the turn
+count is unchanged at 24. `core_choice.py`'s 60µ curve is now anchored on these
+two points; the other permeabilities in it remain estimates.
+
+#### AL is ±8 %, which is why you wind long and measure
+
+```
+  AL high, 87.5 nH   -> 23.1 turns
+  AL nominal, 81 nH  -> 24.0 turns
+  AL low,   74.5 nH  -> 25.0 turns
+```
+
+**Two turns of spread from tolerance alone.** Wind 25, measure, remove one if it
+reads high — which was the right instruction before the datasheet and is now the
+demonstrably right one.
+
+#### Losses, from the datasheet's own loss figure
+
+```
+  datasheet 750 mW/cm3 max at 100 kHz / 100 mT
+  ours: 14.6 mT peak at 200 kHz  ->  0.37 W core
+  plus                               0.33 W copper
+                                     0.70 W total
+```
+
+Scaled from the datasheet's single point rather than from memory — the earlier
+~0.6 W guess for core loss was close. Copper uses the datasheet's **winding
+length per turn, 54.3 mm at 20 % fill** (its 0 % figure, 48.2 mm, equals
+2 × (HT + (OD−ID)/2) exactly, which is a good check on the formula).
+
+#### It fits the window with room to spare
+
+24 turns of a 2.21 mm bundle is **92 mm² in a 427 mm² window — 22 % fill.** The
+wound coil will come out around **OD 43, HT 19 mm** (the datasheet gives 44.3 /
+22.4 at 40 % fill), which is what the enclosure has to accommodate.
 
 **Use the catalogue's Ae, not the one you can work out from the outside.**
 Cross-section from the dimensions gives 134 mm²; the catalogue says **107** —
@@ -492,10 +549,10 @@ loss — 4 W at 200 kHz against 10 W at 500 kHz — so a lower-loss core does no
 move the ceiling. Choosing Hƒ *in order to* switch faster would be the wrong
 reason.
 
-**One thing to confirm on ordering:** matching AL implies matching initial
-permeability, but every turn count here also assumes the standard Kool Mu **DC
-bias curve** (85 % at 23.8 Oe). Check Hƒ's bias curve against the datasheet. If
-it differs, the turns move — that is the one figure not to take on trust.
+**One thing to confirm if you take the Hƒ variant:** the standard part's bias
+curve is now known from its datasheet (80 % at 39 Oe minimum), and the turn
+count depends on it. Hƒ matching on AL does not guarantee it matches on bias.
+For the standard `0077083A7` this is no longer an open question.
 
 ### The wire
 
