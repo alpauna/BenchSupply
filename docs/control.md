@@ -284,7 +284,7 @@ It is roughly a wash on parts — six optos saved against two MCUs, their
 supplies and decoupling — and plainly not a wash on firmware: two more
 codebases, two more bootloaders, and version skew between them and the Pico. It
 also does not touch the hard part, since [CC and cycle-by-cycle
-protection](#current-limit-is-analog-too) stay analog either way.
+protection](#current-limit-is-analog-too--and-the-lt8705-already-has-it) stay analog either way.
 
 **And it would weaken the fail-safe.** "Switches open = 2 V" is currently
 *structural*: it holds when the isolated side is unpowered, resetting, or being
