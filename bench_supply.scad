@@ -43,7 +43,14 @@ standoff_h      =   4;   // the air gap under the supply
    Shell
    --------------------------------------------------------------------------- */
 wall     = 3;
-floor_t  = 3;
+/* DOUBLED from 3 for the toroidal transformers. Not for strength - the stress
+   was never near anything, even at 3 mm. For stiffness: 5.8 kg of iron bows a
+   3 mm floor 2.1 mm, which a box standing on four rubber feet rocks on, and
+   creep settles that bow in permanently. 6 mm is 8x the stiffness and gets it
+   to 0.27 mm. docs/calc/floor.py has the arithmetic.
+   It does NOT fix the bolt: each toroid still hangs off one central screw, and
+   that is a bearing problem. Put a steel spreader under the floor. */
+floor_t  = 6;
 lid_t    = 5;
 
 /* Clearances. The fan end gets a real plenum: a 40 mm fan blowing into a 3 mm
@@ -411,7 +418,7 @@ sh_clr     = 5;      // around the inlet's envelope, for the boots
 sh_wall    = 2.5;
 sh_notch_w = 26;     // three booted spades side by side
 sh_notch_h = 14;     // up from the floor
-sh_tab_z   = 20;     // tabs clear the notch, so the posts carry them
+sh_tab_z   = floor_t + 17;  // above the notch, which starts at the floor
 sh_tab_t   = 3.5;
 sh_tab_l   = 12;
 sh_screw   = 3.2;    // M3 clearance through the tab

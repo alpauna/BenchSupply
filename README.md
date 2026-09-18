@@ -87,7 +87,7 @@ shield](#the-inlet-is-on-the-back-wall--and-brought-a-shield).
 
 | | |
 |---|---|
-| External | **285 × 243 × 106** mm |
+| External | **285 × 243 × 109** mm |
 | Bed footprint, tub | **294 × 243** — the fan pad stands proud of END A, the plug pad off the back wall |
 | Bed footprint, lid | 285 × 243 |
 | Clear space for the supply | **279 × 156 × 79** (the 266 × 153 × 77 minimum, with room) |
@@ -165,8 +165,36 @@ a 250 mm ring are all overhang.
 holds a warm supply and a mains connection, and PLA softens at temperatures a
 loaded supply reaches in a closed box.
 
-Walls and floor are 3 mm; 3 perimeters and 25 % infill is plenty. The lid wants
-**4 perimeters** so the screw counterbores have solid material around them.
+Walls are 3 mm, **the floor is 6** — see below. 3 perimeters and 25 % infill is
+plenty. The lid wants **4 perimeters** so the screw counterbores have solid
+material around them.
+
+### The floor is doubled, and not for strength
+
+5.8 kg of toroidal transformer is not a lot of load — even a 3 mm floor only
+sees **2.6 MPa** against PETG's ~50 MPa yield. Stress was never the problem.
+**Deflection is:**
+
+```
+   t          D   deflection    stress
+  3mm      5357       2.13 mm    2.62 MPa
+  6mm     42857       0.27 mm    0.65 MPa
+  8mm    101587       0.11 mm    0.37 MPa
+```
+
+A 3 mm floor bows **2.1 mm** under its own occupants, and a box standing on four
+rubber feet rocks on that. Worse, PETG creeps, so whatever it bows settles in
+permanently — and a box shedding ~100 W runs warm, which speeds creep up.
+
+Doubling to 6 mm is **8× the stiffness** (t³) and a quarter of the stress
+(1/t²), for 0.27 mm. It costs ~200 cm³ of envelope — call it 130–250 g
+depending on infill — and 3 mm of height. [`docs/calc/floor.py`](docs/calc/floor.py)
+has the arithmetic and a sensitivity sweep, because printed PETG's modulus is
+not a datasheet number.
+
+**What 6 mm does not fix: the bolt.** Each toroid still hangs off one central
+screw, and a screw in plastic is a bearing problem, not a bending one. **Put a
+steel spreader under the floor** — a large washer at minimum, better a plate.
 
 ## How it is put together
 

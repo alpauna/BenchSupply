@@ -298,7 +298,7 @@ ran cool and weighed little. None of that survives:
 |---|---|---|
 | Occupant | one 266 × 153 × 77 supply | **two** 113 × 117 × 70 toroids, plus rectifiers, caps, two converters, two heatsinks |
 | Mass | light, on 4 mm standoff pads | **5.8 kg of iron**, each toroid on a single central bolt |
-| Floor | 3 mm printed, M4 pads | 3 mm of PETG under 2.9 kg per bolt **creeps**. Wants a steel spreader |
+| Floor | 3 mm printed, M4 pads | **now 6 mm** — 3 mm bowed 2.1 mm under 5.8 kg, 6 gives 0.27. Still wants a steel spreader under each bolt |
 | Heat | a warm supply | **~100 W** at full output — 64 W converters, 37 W transformers |
 | Airflow | one 40 mm fan, lengthwise over a long supply | nowhere near enough |
 | Mains | one inlet, 10 A fuse | **5.8 A** draw, and the inrush of two 350 VA toroids. Needs a soft start |
