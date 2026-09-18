@@ -156,6 +156,7 @@ rather than the print.
 | 1 | `tub` | **floor down**, open side up |
 | 1 | `lid` | **outer face down** — see below |
 | 1 | `shield` | **on its back** — the flat face that carries the wire slot, down on the bed |
+| 1 | `psu5_shell` | **face down** — the grid face flat on the bed, so no wall overhangs |
 
 **Print the lid upside down, outer face on the bed.** Modelled ribs-down as it
 sits on the box, so flipping it makes every rib and the locating ring grow

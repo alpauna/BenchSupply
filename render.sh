@@ -8,4 +8,4 @@ render() {
     printf '%-15s %8s B\n' "$1" "$(stat -c%s "stl/$1.stl" 2>/dev/null || echo FAIL)"
 }
 export -f render
-printf "%s\n" tub lid shield | xargs -P "$(nproc)" -I{} bash -c 'render {}'
+printf "%s\n" tub lid shield psu5_shell | xargs -P "$(nproc)" -I{} bash -c 'render {}'

@@ -9,7 +9,7 @@
 // Mains inside a printed box. Read the safety note in README.md before you
 // energise it: the lid screws are the only thing between a finger and 120 V.
 //
-//   render one part at a time:  part = "tub" | "lid" | "shield" | "assembly"
+//   render: part = "tub" | "lid" | "shield" | "psu5_shell" | "assembly"
 
 part = "assembly";
 
@@ -537,6 +537,163 @@ module lv_gland_cut() {
         rotate([0, 90, 0]) cylinder(d = lv_gland_d, h = wall + 2, $fn = fit_fn);
 }
 
+/* ---------------------------------------------------------------------------
+   5 V CONTROL MODULE — grid shell, on the BACK WALL beside the inlet
+   ---------------------------------------------------------------------------
+   The 5 V module is an OPEN FRAME board: live AC terminals and a live primary
+   side on a bare PCB. It gets a cover for the same reason the inlet's spades
+   did - nothing live that a finger can reach with the lid off.
+
+   MOUNTED LANDSCAPE, FLAT AGAINST THE BACK WALL, low, and BESIDE the inlet
+   rather than above it. Above does not fit: the mains shield's roof is at
+   z 68.5 and the rim taper starts at 89, so there is 20.5 mm of height there
+   and the board needs 46.5. Beside it there is 118 mm of clear wall each way
+   for an 86.5 mm board.
+
+   Standing it against the wall also solves the depth problem. Lying on the
+   floor the board needs 46.5 mm and the back bay has 34; stood up it projects
+   only its 24 mm of components plus standoffs, and clears.
+
+   A GRID, not a solid hood. The module is a switcher and a sealed box would
+   cook it, so the shell is perforated on its face, both ends and the top. The
+   holes are finger-safe by a wide margin: 5 mm square is 7.07 across the
+   corners against a 12 mm test finger.
+
+   TWO open faces, and both are closed by something already there - the same
+   trick as the mains shield, used twice:
+     - open at the BACK: the enclosure wall closes it
+     - open at the BOTTOM: the enclosure floor closes it
+   Wire slots run off the bottom edge of each end for the same reason as the
+   shield's: screw terminals under a cover cannot be reached once it is on, so
+   the module is wired FIRST and the shell dropped over the finished harness.
+
+   Diamonds on the vertical walls - a square hole in a vertical wall has a flat
+   top edge to bridge, a diamond has an apex and self-supports.
+
+   Print it FACE DOWN, the grid face flat on the bed. Every remaining wall then
+   rises vertically and there is no overhang in the part.
+
+   Local frame: X along the wall, Y out from the wall, Z up. */
+psu5_l    = 86.5;   // MEASURE: the board. YS-U20S drawing; confirm what arrives
+psu5_w    = 46.5;   // the landscape height, up the wall
+psu5_d    = 24.0;   // 2 mm PCB + 22 mm of components, out from the wall
+psu5_clr  =  2.5;   // over the tallest component, and around the board
+psu5_stand=  3.0;   // standoffs off the wall - enough for the solder tails
+psu5_wall =  2.0;
+psu5_pitch=  8;
+psu5_sq   =  5;     // 7.07 across corners, against a 12 mm test finger
+psu5_slot_w = 22;   // wire slot at each end, open at the bottom
+psu5_slot_h = 11;
+/* Retention: two M3 screws through the BACK WALL from outside, into blind
+   bosses inside the shell - the same idea as the fan, which also screws in
+   from the outside face.
+
+   Side tabs to floor posts were the first attempt and do not fit: shell plus
+   tabs is 123.5 mm and only 115 is free beside the inlet. Bosses cost no
+   length at all.
+
+   The bosses are BLIND on purpose. The screw must stop in plastic and never
+   break through into the shell's interior, because the interior is mains. */
+psu5_boss_d = 9;
+psu5_boss_l = 10;    // deep enough that an M3 x 8 stops inside it
+psu5_boss_p = 2.6;
+psu5_screw  = 3.2;   // clearance through the enclosure wall
+psu5_boss_in= 12;    // boss centres, in from each end
+
+psu5_il = psu5_l + 2*psu5_clr;                 // inner cavity, along the wall
+psu5_ih = psu5_w + psu5_clr;                   // inner, up from the floor
+psu5_id = psu5_d + psu5_stand + psu5_clr;      // inner, out from the wall
+psu5_ol = psu5_il + 2*psu5_wall;
+psu5_oh = psu5_ih + psu5_wall;
+psu5_od = psu5_id + psu5_wall;
+psu5_boss_z = psu5_oh/2;   // mid height
+
+module psu5_grid() {
+    nl = floor((psu5_il - psu5_pitch)/psu5_pitch);
+    nh = floor((psu5_ih - psu5_pitch)/psu5_pitch);
+    nd = floor((psu5_id - psu5_pitch)/psu5_pitch);
+    // the face, looking into the box: diamonds in a vertical wall
+    for (i = [0 : nl], k = [0 : nh])
+        translate([psu5_ol/2 + (i - nl/2)*psu5_pitch,
+                   psu5_od - psu5_wall/2,
+                   psu5_pitch/2 + k*psu5_pitch])
+            rotate([90, 45, 0]) cube([psu5_sq, psu5_sq, psu5_wall + 2], center = true);
+    // the two ends, also vertical
+    for (j = [0 : nd], k = [0 : nh])
+        for (x = [psu5_wall/2, psu5_ol - psu5_wall/2])
+            translate([x, psu5_pitch/2 + j*psu5_pitch,
+                       psu5_pitch/2 + k*psu5_pitch])
+                rotate([45, 0, 0]) cube([psu5_wall + 2, psu5_sq, psu5_sq], center = true);
+    // the top is horizontal, so plain squares do
+    for (i = [0 : nl], j = [0 : nd])
+        translate([psu5_ol/2 + (i - nl/2)*psu5_pitch,
+                   psu5_pitch/2 + j*psu5_pitch,
+                   psu5_oh - psu5_wall/2])
+            cube([psu5_sq, psu5_sq, psu5_wall + 2], center = true);
+}
+
+module psu5_shell() {
+    difference() {
+        union() {
+            difference() {
+                cube([psu5_ol, psu5_od, psu5_oh]);
+                // hollow, open at the back (y=0) and the bottom (z=0)
+                translate([psu5_wall, -1, -1])
+                    cube([psu5_il, psu5_id + 1, psu5_ih + 1]);
+            }
+            for (x = [psu5_boss_in, psu5_ol - psu5_boss_in])
+                translate([x, 0, psu5_boss_z]) rotate([-90, 0, 0])
+                    cylinder(d = psu5_boss_d, h = psu5_boss_l);
+        }
+        psu5_grid();
+        // wire slots: one at each end, running off the bottom edge
+        for (x = [-1, 1])
+            translate([x > 0 ? psu5_ol - psu5_wall - 1 : -1,
+                       psu5_od/2 - psu5_slot_w/2, -1])
+                cube([psu5_wall + 2, psu5_slot_w, psu5_slot_h + 1]);
+        // blind pilots - stop short of breaking through
+        for (x = [psu5_boss_in, psu5_ol - psu5_boss_in])
+            translate([x, -1, psu5_boss_z]) rotate([-90, 0, 0])
+                cylinder(d = psu5_boss_p, h = psu5_boss_l - 1, $fn = hole_fn);
+    }
+}
+
+/* Placement: back wall, END A end. Cool air - that end is the intake, not the
+   exhaust - and short runs to the fans, which cluster there. Beside the inlet,
+   not above it: above the mains shield there are 20.5 mm and the board is 46.5
+   landscape. */
+psu5_x = 62;                       // centre along the wall
+psu5_y = wall;                     // hard against the back wall
+
+module psu5_place() {
+    translate([psu5_x - psu5_ol/2, psu5_y, floor_t]) children();
+}
+/* Clearance holes through the back wall for the two retaining screws. */
+module psu5_wall_holes() {
+    for (dx = [psu5_boss_in, psu5_ol - psu5_boss_in])
+        translate([psu5_x - psu5_ol/2 + dx, -1, floor_t + psu5_boss_z])
+            rotate([-90, 0, 0]) cylinder(d = psu5_screw, h = wall + 2, $fn = hole_fn);
+}
+module ghost_psu5() {
+    translate([psu5_x - psu5_l/2, psu5_y + psu5_stand, floor_t + psu5_clr])
+        cube([psu5_l, psu5_d, psu5_w]);
+}
+
+assert(psu5_x + psu5_ol/2 < sh_x0 - sh_wall,
+       "5 V shell runs into the mains shield. Move psu5_x toward END A.");
+assert(psu5_x - psu5_ol/2 > wall,
+       "5 V shell runs off END A.");
+assert(psu5_boss_l < psu5_id,
+       "5 V shell bosses reach further in than the cavity is deep.");
+assert(psu5_sq*sqrt(2) < 12,
+       "5 V shell grid is not finger-safe: holes exceed a 12 mm test finger.");
+assert(psu5_slot_h < psu5_boss_z - psu5_boss_d/2,
+       "5 V shell wire slots run into the retaining bosses.");
+assert(psu5_od < bay_back,
+       "5 V shell is deeper than the back bay.");
+assert(psu5_oh < rim_z0 - floor_t,
+       "5 V shell is taller than the clear height at the wall.");
+
 /* Screw stations, on the centreline of wall + rim band. */
 lid_inset = (wall + rim_w)/2;
 lid_screws = concat(
@@ -590,6 +747,7 @@ module tub() {
         lid_screw_blind();
         standoff_holes();
         shield_post_holes();
+        psu5_wall_holes();
     }
 }
 
@@ -663,10 +821,13 @@ module ghost_mod() {
 if      (part == "tub") tub();
 else if (part == "lid") lid();
 else if (part == "shield") shield();
+else if (part == "psu5_shell") psu5_shell();
 else {
     color("lightsteelblue") tub();
     color("gainsboro") translate([0, 0, out_h - stiff_h]) lid();
     color("indianred") shield();
+    color("indianred") psu5_place() psu5_shell();
+    %ghost_psu5();
     // the supply itself — a ghost, to check nothing grows into it
     %translate([psu_x0, psu_y0, psu_z0]) cube([psu_l, psu_w, psu_h]);
     %ghost_plug();
@@ -690,4 +851,8 @@ echo(str("shield    ", sh_x1 - sh_x0 + 2*sh_wall, " x ",
 echo(str("DC-DC     cutout ", mod_cut_w, " x ", mod_cut_h,
          " in a ", mod_panel_t, " panel; boss ", mod_boss,
          "; clear bay behind it ", bay_w + mod_boss - mod_depth));
+echo(str("5V shell  ", psu5_ol, " x ", psu5_od, " x ", psu5_oh,
+         " at x ", psu5_x, " on the back wall; bay spare ",
+         bay_back - psu5_od, ", gap to the mains shield ",
+         sh_x0 - sh_wall - (psu5_x + psu5_ol/2)));
 echo(str("lid screws ", len(lid_screws), " x M3"));

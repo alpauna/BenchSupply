@@ -334,6 +334,45 @@ does not care what the mains does.
 > arrives** — the enclosure depends on them, and the "on edge in the back bay"
 > conclusion below is computed from the YS-U20S drawing.
 
+#### Fuse the branch — but at 0.5 A, not 3
+
+A separate fuse on this branch is right: the C14's fuse is sized for the whole
+box and would never notice a fault in a 156 mA load. The value is the problem.
+
+```
+  at its 15 W rating        18.8 W in ->  156.2 mA
+  at the real 3.8 W load     5.1 W in ->   42.2 mA
+```
+
+**A 3 A fuse is 19× the module's maximum input current.** The module can fail
+short and cook without ever blowing it. A fuse that cannot blow is not there.
+
+```
+  0.25 A time-delay -> 1.6x rated draw   tight, inrush may nuisance-trip
+  0.5  A time-delay -> 3.2x rated draw   sensible
+  1.0  A time-delay -> 6.4x rated draw   sensible
+```
+
+**0.5 A time-delay.** Time-delay rather than fast, because the module's input
+capacitor charges through the fuse at switch-on.
+
+#### All three branches, since the inlet now feeds three loads
+
+| branch | draw | fuse |
+|---|--:|---|
+| toroid A primary, 350 VA | 2.92 A | 4 A time-delay |
+| toroid B primary, 350 VA | 2.92 A | 4 A time-delay |
+| 5 V control module | 0.16 A | **0.5 A time-delay** |
+| **total** | **5.99 A** | 8 A time-delay at the C14 |
+
+The branch values differ by **8:1**, which is exactly why branch fusing earns
+its keep — one 8 A fuse upstream protects the cord and nothing else. The inlet
+module is rated 10 A; that is a ceiling, not a recommendation.
+
+Toroid primaries want time-delay regardless: a 350 VA toroid's inrush will pop
+a fast fuse of any sensible rating, which is the same reason [the soft
+start](power-chain.md#what-this-does-to-the-enclosure) is on the list.
+
 #### The module is open frame
 
 This is the part that matters. It is a **bare PCB with live AC terminals and a
@@ -345,17 +384,36 @@ It needs the same treatment: a printed hood over it, or mounting it inside an
 extension of the mains shield. The same rule applies either way — **no exposed
 mains that a finger can reach with the lid off.**
 
-#### Where it fits
+#### Where it goes: landscape on the back wall, beside the inlet
+
+Mounted **landscape, flat against the back wall**, low, at the **END A end** —
+the intake end, so it sits in cool air rather than the exhaust, and close to
+where the fans cluster.
+
+**Not above the inlet.** The mains shield's roof is at z 68.5 and the rim taper
+starts at 89, so there is **20.5 mm** of height above it and the board needs
+46.5 landscape. Beside it there is **118 mm** of clear wall each way for an
+86.5 mm board.
+
+Standing it against the wall also solves the depth problem: lying on the floor
+the board needs 46.5 mm and the back bay has 34; stood up it projects only its
+24 mm of components plus standoffs, and the shell comes to **31.5 mm** — the
+same 2.5 mm gap to the supply that the mains shield has.
 
 ```
-  back bay (mains)   34 mm:  lying flat (46.5 deep) NO  | on edge (24 deep) yes
-  front bay (LV)     50 mm:  lying flat (46.5 deep) yes | on edge (24 deep) yes
+5V shell  95.5 x 31.5 x 51 at x 62 on the back wall
+          bay spare 2.5, gap to the mains shield 10.75
 ```
 
-It belongs in the **back bay**, because it is a mains part and the front wall is
-the low-voltage side — and it only fits there **on edge**, standing 46.5 mm tall
-in 24 mm of depth, with 10 mm to spare. Lying flat it would need 46.5 mm and the
-back bay has 34.
+#### How it is held: two screws through the back wall
+
+**Side tabs to floor posts were the first attempt and do not fit** — shell plus
+tabs is 123.5 mm against 115 mm of free wall. Two M3 screws through the back
+wall from outside, into blind bosses inside the shell, cost no length at all.
+Same idea as the fan, which also screws in from the outside face.
+
+**The bosses are blind on purpose.** The screw must stop in plastic and never
+break through into the shell's interior, because that interior is mains.
 
 #### It makes the inlet a distribution point
 
