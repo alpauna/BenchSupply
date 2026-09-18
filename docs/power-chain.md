@@ -12,7 +12,11 @@ rather than trusting the tables.
 python3 docs/calc/power_budget.py    # transformer, rails, power, heat
 python3 docs/calc/inductor.py        # core geometry, winding, losses
 python3 docs/calc/core_choice.py     # which core to buy, solved under DC bias
+python3 docs/calc/floor.py           # floor thickness under the transformers
+python3 docs/calc/control.py         # setpoint divider, opto barrier, fans
 ```
+
+Control electronics and cooling are in [`control.md`](control.md).
 
 ---
 
@@ -314,7 +318,9 @@ the box forward.**
   secondaries? Two toroids give matched channels and are already half-bought;
   one larger lump is likely cheaper per VA but must not be centre-tapped.
 - Soft start: NTC inrush limiter, or a resistor bypassed by a relay.
-- Converter: 4-switch buck-boost controller, or boost-then-buck. Not chosen.
+- Converter: 4-switch buck-boost controller, or boost-then-buck. Not chosen —
+  but it **is** an analog controller closing its own loop, with the Pico only
+  moving the setpoint. See [`control.md`](control.md).
 - Toroid or a gapped ferrite E-core on a bobbin? The toroid is specified above
   and has the closed flux path, which two converters and a mains filter will
   appreciate. But a bobbin is far easier to hand-wind — you wind it off the
