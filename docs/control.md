@@ -629,9 +629,6 @@ hand against 11.7. If they are short, the answer is 60 mm rather than a fourth
 
 ## Open
 
-- Where the temperature is measured. The pass elements and heatsinks will lead
-  the toroids by a long way, so the thresholds above belong to whichever sensor
-  is hottest — decide the sensor before the numbers.
 - 4-pin PWM fans instead of on/off staging? Continuous ramping is quieter and
   the Pico has PWM to spare.
 - Resolution: 10 bits gives 57 mV steps. Fine for a bench supply, coarse for
