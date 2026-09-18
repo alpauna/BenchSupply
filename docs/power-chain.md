@@ -160,6 +160,7 @@ that was actually chosen is done properly, off the catalogue.
 | Permeability | **60µ** |
 | Turns | **22** for 34.6 µH at 8.31 A peak — wind 23 and measure |
 | Wire | **3 × AWG18** twisted, grade 2 heavy build, Class 180 (H) |
+| Hƒ variant | **drop-in** — see below. Take it if stocked at a similar price |
 
 **Use the catalogue's Ae, not the one you can work out from the outside.**
 Cross-section from the dimensions gives 134 mm²; the catalogue says **107** —
@@ -190,6 +191,39 @@ not in doubt.
 Energy capacity at 60µ is **70 mJ against 1.19 mJ needed** — 59× — so
 saturation is nowhere near the binding constraint. The binding constraint is
 loss.
+
+### The Hƒ variant is a drop-in, and does not unlock a faster converter
+
+Magnetics also list **Kool Mu Hƒ**, a lower-core-loss formulation. For core 0254
+the two catalogue rows are identical where they overlap:
+
+```
+   mu  standard     Hf
+  26u       35n    35n   identical
+  40u       54n    54n   identical
+  60u       81n    81n   identical
+  75u ... 125u             not offered in Hf
+```
+
+le, Ae, Ve and the dimensions match as well, so **nothing in this design
+changes** — same 22 turns, same 3 × AWG18. And Hƒ stopping at 60µ costs nothing
+here, because 60µ is where the ΔB argument landed anyway. (26µ would need 37
+turns and cap the bundle at 1.84 mm, so it will not take the wire.)
+
+What it buys is perhaps 20–30 % off the core loss — roughly **0.15 W per
+channel** against a 5–7 W loss budget. Worth having for free, worth nothing in
+efficiency terms, and it runs a little cooler in a box already shedding ~100 W.
+
+**What it does not buy is a higher switching frequency.** Hƒ earns its keep at
+500 kHz–1 MHz, where core loss is the limit. Here the limit is MOSFET switching
+loss — 4 W at 200 kHz against 10 W at 500 kHz — so a lower-loss core does not
+move the ceiling. Choosing Hƒ *in order to* switch faster would be the wrong
+reason.
+
+**One thing to confirm on ordering:** matching AL implies matching initial
+permeability, but every turn count here also assumes the standard Kool Mu **DC
+bias curve** (85 % at 23.8 Oe). Check Hƒ's bias curve against the datasheet. If
+it differs, the turns move — that is the one figure not to take on trust.
 
 ### The wire
 
