@@ -179,9 +179,69 @@ turning a knob will notice.
 browns out the outputs drop and the channel output *falls*. Both safe
 directions.
 
-**Readback crosses the same barrier.** Displaying V and I means an ADC on the
-isolated side with its data returning through one more opto. Share the clock
-with the shift register and it costs one extra part per channel.
+### The interface is SPI, and that is forced by the optos
+
+Every optocoupler is **unidirectional**. I²C's bidirectional `SDA` needs two of
+them plus care to avoid latching itself low. SPI's lines each go one way by
+definition, so they map onto optos with nothing clever required.
+
+```
+  out:  SCK, MOSI, CS_switches, CS_adc   = 4 optos   LED on the Pico side
+  back: MISO                             = 1 opto    LED on the ISOLATED side
+        5 per channel, 10 total   (against 20+ for one-opto-per-bit)
+```
+
+**Every line crosses optically, both directions.** The four outbound ones have
+their LEDs on the Pico's side; the return has its LED on the *isolated* side,
+driven by the ADC's and switch chip's `MISO` output through its own resistor,
+with the phototransistor on the Pico. Nothing electrical bridges the gap — which
+is the whole point, since these two channels get stacked in series.
+
+That return opto is subject to the same speed limit as the rest: tens of
+microseconds with a 10k pull-up. It bounds `MISO` exactly as it bounds `SCK`, so
+the few-kHz clock covers both.
+
+### Readback crosses the same barrier — and switch state comes free
+
+The Pico needs current, voltage, and **confirmation that the switch word it
+sent is the one that actually latched**. All three come back on that single
+`MISO` opto.
+
+**Switch state costs nothing extra.** The daisy-chain output of the switch chip
+(or a `74HC595`'s `QH'`) shifts out what was previously loaded. Clock the new
+word in and the old one comes back on the `MISO` line already there for the ADC.
+Compare it against what was sent last time, and a bit corrupted in the barrier
+becomes visible. On a box that can put 60 V out, that is worth having — an
+undetected stuck bit is a wrong output voltage, silently.
+
+**Current sense:**
+
+```
+   shunt   V at 3A        P   gain for 3.3V   12-bit LSB
+     10m    30.0mV     90mW            110       0.73mA
+     20m    60.0mV    180mW             55       0.73mA
+     50m   150.0mV    450mW             22       0.73mA
+```
+
+**20 mΩ with a gain-50 amp** gives 3.0 V full scale — a stock INA gain, 180 mW
+in the shunt, 0.73 mA per count at 12 bits.
+
+High-side sensing puts the output on the amplifier's **common mode: up to 60 V**.
+That needs an `INA293`-class part rated ≥80 V CM, not a garden-variety 26 V one.
+Low-side is easier but puts the shunt in the return, which regulation then has
+to account for.
+
+### Current limit is analog too
+
+The Pico reads current; it must not *enforce* the limit. Constant-current mode
+needs an analog loop — an error amplifier on the shunt, diode-OR'd into the same
+feedback node as the voltage loop, so whichever demands less wins. **The Pico
+sets the CC threshold** (a second switched divider, or a DAC, on the isolated
+side) and the analog loop acts on it.
+
+This is the same argument as the main loop, and it matters more here: a short
+circuit on the output is exactly the case where a millisecond-scale software
+response is too slow.
 
 ## Cooling
 
@@ -228,6 +288,10 @@ small auxiliary mains module: 12 V for the fans, 5 V derived for the Pico.
   the Pico has PWM to spare.
 - Resolution: 10 bits gives 57 mV steps. Fine for a bench supply, coarse for
   anything calibrated.
+- Where the temperature sensors sit electrically. A heatsink is often tied to a
+  pass device's tab, which is a switching node — so the sensor may be on the
+  isolated side too, and its reading has to come back across the barrier with
+  everything else.
 - Whether a watchdog should clear the switch array if the Pico stops talking.
   The register currently holds its last setpoint, which fails *level* rather
   than *safe* — acceptable, since it cannot fail upward.

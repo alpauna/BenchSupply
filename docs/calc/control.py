@@ -93,6 +93,27 @@ for ron, part in ((2.5, "ADG714-class octal SPST, SPI"), (100.0, "CD4051-class m
           f" -> {ron*Gmax*100:5.2f}% error at {VMAX} V")
 print("  The serial switch IS the serial-to-parallel converter. One part.")
 
+# ---- readback ---------------------------------------------------------------
+print("\n=== Readback across the barrier ===")
+out = ["SCK","MOSI","CS_switches","CS_adc"]; back = ["MISO"]
+print(f"  out  {len(out)} optos: {', '.join(out)}")
+print(f"  back {len(back)} opto : {', '.join(back)}")
+print(f"  {len(out)+len(back)} per channel, {2*(len(out)+len(back))} total")
+print("  SPI, not I2C: optos are unidirectional and I2C's SDA is not.")
+print("  Switch state is free - the daisy-chain output returns the PREVIOUS")
+print("  word on the MISO opto already there for the ADC, so the Pico can")
+print("  check that what it sent is what latched.")
+I = 3.0
+print(f"\n{'shunt':>8} {'V at 3A':>9} {'P':>8} {'gain for 3.3V':>14} {'12-bit LSB':>12}")
+for r in (0.010, 0.020, 0.050):
+    v=r*I; print(f"{r*1000:>6.0f}m {v*1000:>7.1f}mV {I*I*r*1000:>6.0f}mW"
+                 f" {3.3/v:>13.0f} {I/4096*1000:>10.2f}mA")
+print("  20 mohm + gain 50 -> 3.0 V full scale, a stock INA gain.")
+print("  High-side sense sees up to 60 V common mode: INA293-class, not 26 V.")
+print("  And the Pico must not ENFORCE the current limit - CC needs an analog")
+print("  error amp diode-OR'd into the same FB node. The Pico sets the")
+print("  threshold; hardware acts on it.")
+
 # ---- fans ------------------------------------------------------------------
 print("\n=== Fan staging ===")
 rho, cp = 1.2, 1005
