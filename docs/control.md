@@ -254,6 +254,67 @@ Three 40 mm fans give 9–15 CFM installed, which lands on 100 W at a 15 K rise.
 One 80 mm would move the same air far more quietly — **staging is what buys the
 quiet at low load**, which is most of the time.
 
+### Temperature sensing: 1-Wire, and isolated by the packaging
+
+**The deciding question is not which bus. It is where the sensors sit
+electrically.**
+
+The temperature that matters is the pass-element heatsink. In a 4-switch
+buck-boost the FET tabs are switching nodes, so they mount on insulators and the
+heatsink is then tied to **its own channel's ground** for EMI. Channel A's
+heatsink and channel B's are therefore at two different potentials — and when
+the channels are stacked for ±60 V, 60 V apart.
+
+**A metal-cased sensor bolted to each, both wired back to the Pico's ground,
+bridges the two channels and undoes the isolation.** Again — this is the third
+place the barrier can be given away by accident, after the setpoint divider and
+the control rail.
+
+Couple them thermally and isolate them electrically, and the problem disappears:
+every sensor then lives on the Pico's ground, nothing crosses the barrier, and
+the bus choice becomes free.
+
+| | 1-Wire (DS18B20) | I²C (TMP102/LM75) |
+|---|---|---|
+| pins | **1** + pull-up | 2 |
+| sensors per bus | many, unique 64-bit IDs | 8 addresses typical |
+| cable runs | designed for metres | keep short — bus capacitance |
+| addressing | automatic | plan addresses, strap pins |
+| conversion | 750 ms at 12-bit | tens of ms |
+| isolated probe form | **stainless, off the shelf** | rare |
+
+**1-Wire.** One GPIO for the lot, sensors spread over a 285 mm box, no address
+planning — and the stainless probe form is **electrically isolated by
+construction**, which solves the problem above through packaging rather than
+through care. (Good enough for a 60 V heatsink. It is not safety insulation, so
+do not use one against anything at mains potential.)
+
+The 750 ms conversion looks slow and is not. A heatsink's thermal time constant
+is tens of seconds, so sampling at 1 Hz gives ~60 samples per time constant —
+two orders of magnitude more than the control needs. **Thermal management is not
+a fast loop.**
+
+Neither bus would survive the opto barrier, incidentally: both are
+bidirectional, and `SDA` and the 1-Wire data line have the same problem
+[`MISO` does not](#the-interface-is-spi-and-that-is-forced-by-the-optos). Another
+reason to keep the sensors on the Pico's side.
+
+### Three sensors, and what each is for
+
+| where | for |
+|---|---|
+| **pass-element heatsink** | drives the fan staging — it leads everything else by a long way |
+| **toroid** | slow and high-mass, and it has its own thermal fuse; logging and a shutdown backstop |
+| **intake air** | ambient reference. In the fan stream, away from any heatsink, or it reads its own self-heating |
+
+The thresholds below belong to the **heatsink** sensor.
+
+### A failed read must stage up
+
+CRC failure, a missing sensor, a shorted bus: the firmware treats that as **hot**
+and runs the fans. Not as cold, and not as "hold the last value". Same principle
+as fan 1 being hardwired — the failure direction has to be the safe one.
+
 ### Stage on thresholds with hysteresis, not on "still rising"
 
 | | on | off |
@@ -310,7 +371,7 @@ construction. Either a small 60 V-capable buck per channel, or — check this
 first — **the switching controller's own VCC/bias output**, which on many parts
 can spare the tens of milliamps this needs.
 
-### The module, and it is open frame
+### The module
 
 | | |
 |---|---|
@@ -377,7 +438,7 @@ Toroid primaries want time-delay regardless: a 350 VA toroid's inrush will pop
 a fast fuse of any sensible rating, which is the same reason [the soft
 start](power-chain.md#what-this-does-to-the-enclosure) is on the list.
 
-#### The module is open frame
+#### It is open frame — so it needs a cover too
 
 This is the part that matters. It is a **bare PCB with live AC terminals and a
 live primary side** — so the inlet's spades are no longer the only exposed mains
@@ -451,10 +512,6 @@ hand against 11.7. If they are short, the answer is 60 mm rather than a fourth
   the Pico has PWM to spare.
 - Resolution: 10 bits gives 57 mV steps. Fine for a bench supply, coarse for
   anything calibrated.
-- Where the temperature sensors sit electrically. A heatsink is often tied to a
-  pass device's tab, which is a switching node — so the sensor may be on the
-  isolated side too, and its reading has to come back across the barrier with
-  everything else.
 - Whether a watchdog should clear the switch array if the Pico stops talking.
   The register currently holds its last setpoint, which fails *level* rather
   than *safe* — acceptable, since it cannot fail upward.

@@ -303,7 +303,7 @@ finger away. The shield covers them.
 
 **They are no longer the only exposed mains.** The 5 V control module is an
 open-frame board — live AC terminals and a live primary side on a bare PCB. It
-needs the same treatment; see [`docs/control.md`](docs/control.md#the-module-is-open-frame).
+needs the same treatment; see [`docs/control.md`](docs/control.md#it-is-open-frame--so-it-needs-a-cover-too).
 
 It is a cup with **two open faces**: the one against the END B wall, where the
 inlet comes through, and the **bottom**, where it stands on the floor.
