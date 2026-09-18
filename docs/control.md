@@ -46,8 +46,10 @@ rail](power-chain.md#the-inductor) — verify before committing.
 Vout = Vref * (1 + Rtop * G)        G = bottom-leg conductance
 ```
 
-With Vref 0.8 V and Rtop 74k, Rbot runs 1.00k at 60 V to 49.33k at 2 V —
-1000 µS down to 20.3 µS.
+With the **LT8705**'s `FBOUT` reference of **1.207 V** and Rtop 48.7k, Rbot runs
+1.00k at 60 V to 74.1k at 2 V — 1000 µS down to 13.5 µS. (See
+[the controller](power-chain.md#the-controller-lt8705); this was computed at an
+assumed 0.8 V while the part was unchosen.)
 
 **Vout is linear in conductance**, and parallel conductances add, so
 binary-weighted switched resistors give *uniform voltage steps*. No lookup
@@ -231,13 +233,15 @@ That needs an `INA293`-class part rated ≥80 V CM, not a garden-variety 26 V on
 Low-side is easier but puts the shunt in the return, which regulation then has
 to account for.
 
-### Current limit is analog too
+### Current limit is analog too — and the LT8705 already has it
 
 The Pico reads current; it must not *enforce* the limit. Constant-current mode
-needs an analog loop — an error amplifier on the shunt, diode-OR'd into the same
-feedback node as the voltage loop, so whichever demands less wins. **The Pico
-sets the CC threshold** (a second switched divider, or a DAC, on the isolated
-side) and the analog loop acts on it.
+needs an analog loop, and the [LT8705](power-chain.md#the-controller-lt8705)
+carries one of its own — one of its four servo loops regulates output current.
+**The Pico sets the CC threshold; the chip enforces it.**
+
+An external error amplifier diode-OR'd into the feedback node was the plan while
+the controller was unchosen. It is no longer needed.
 
 This is the same argument as the main loop, and it matters more here: a short
 circuit on the output is exactly the case where a millisecond-scale software

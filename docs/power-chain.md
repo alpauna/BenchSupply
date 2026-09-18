@@ -116,12 +116,37 @@ The channels are isolated, so they combine — which was the point:
 | **± split** | **±60 V** about a common centre | the original requirement |
 | **parallel** | to **6 A** below 50 V | 300 W total, but see below |
 
-**Series needs a reverse-protection diode across each output.** If one channel
-is off, current-limited or shorted while the other is driving, the live one
-pushes current backwards through the dead one. A diode across each output —
-cathode to the positive terminal, rated for the full current — gives that
-current somewhere to go. Standard practice for stacked supplies and easy to
-forget.
+**Series needs a reverse-protection diode across each output — across, not in
+series with it.** If one channel is off, current-limited or shorted while the
+other is driving, the live one pushes current backwards through the dead one,
+and the diode gives that current somewhere to go.
+
+```
+      +out ---+-------------------> load
+              |
+            [diode]   cathode to +out, anode to -out
+              |
+      -out ---+------------------->
+```
+
+It sits **anti-parallel** with the output and is reverse-biased in normal
+operation, so it carries no current and drops nothing. Rate it for the full
+output current, because that is what it has to survive when it does conduct.
+
+**Nothing goes in series with the output.** A series diode would be intolerable
+at the bottom of the range:
+
+```
+   Vout    drop    error  loss at 3 A
+    2 V    0.5V    25.0%        1.5 W
+    5 V    0.5V    10.0%        1.5 W
+   60 V    0.5V     0.8%        1.5 W
+```
+
+0.5 V on a 2 V output is a quarter of it. Even inside the sense loop, where the
+regulator could compensate, it is 1.5 W of heat and a volt the load never sees.
+The same argument is why the converter is [synchronous](#synchronous-and-here-that-is-load-bearing):
+no junction drops anywhere in the conduction path.
 
 **Parallel is the awkward one.** Two independently regulated voltage sources
 fight: whichever reads fractionally higher takes the whole load until it hits
@@ -204,6 +229,80 @@ carries over; none of the part selection does.
 There is also no *switchover* to design. A buck-boost crosses unity gain
 continuously — one converter covers 2 V and 60 V with no handover, no relay and
 no second regulator to swap in.
+
+## The controller: LT8705
+
+**Analog Devices LT8705**, synchronous 4-switch buck-boost, one per channel.
+
+| | |
+|---|---|
+| Input | 2.8 – **80 V** |
+| Output | 1.3 – **80 V** |
+| Switching | 100 – 400 kHz — our 200 kHz sits mid-range |
+| Drivers | quad N-channel, so all four switches are FETs |
+| Loops | **four**: input voltage, input current, output voltage, output current |
+
+### Why not the obvious TI part
+
+A 60 V output rules out most of the family, which is the trap flagged earlier
+and worth showing rather than asserting:
+
+| part | input | output | verdict |
+|---|---|---|---|
+| **LM5176** (TI) | 4.2–55 V, 60 abs max | ~55 V | our 60 V is **at or over** the limit |
+| **LT3790** | 60 V | 60 V | exactly at the limit, **zero margin** |
+| **LT8705** | 2.8–80 V | 1.3–80 V | **20 V of margin on both** |
+
+It is an ADI part rather than the TI/Maxim used elsewhere in these projects.
+That is the cost, and it is not much of one.
+
+### Synchronous, and here that is load-bearing
+
+All three candidates are synchronous — but it is worth recording *why* not to
+substitute a cheaper asynchronous part later:
+
+```
+  boost rectifier, diode : 0.5 V x 6.02 A x 0.488 = 1.47 W
+  boost rectifier, FET   : 6.02^2 x 28 mOhm x 0.488 = 0.50 W
+  buck low side at 12 V, diode : 0.89 W
+  buck low side at 12 V, FET   : 0.15 W
+  saved: 1.71 W = 1.1 percentage points at 150 W out
+```
+
+**Efficiency is the margin in this design.** The budget fits at 85 % with
++8 VA and is *over* at 82 %. Giving a point and a half away to diode drops
+gives away most of what capping at 150 W just bought back.
+
+### The input current loop is the feature that matters most
+
+The transformer gives 217 W DC. At the 29.3 V the rail sags to, that is
+**7.4 A** of input current.
+
+Set the LT8705's input current limit near there and **the 150 W envelope stops
+being a firmware promise and becomes a hardware property.** The transformer
+cannot be overdrawn even if the Pico is wrong, hung, or being reflashed. Nothing
+else in this design protects the transformer that directly.
+
+### And the output current loop removes a part
+
+CC mode is built in, so the external error amplifier diode-OR'd into the
+feedback node — specified in [`control.md`](control.md#current-limit-is-analog-too)
+— is no longer needed. The Pico sets the CC threshold; the chip enforces it.
+
+### It also moves the setpoint divider
+
+`FBOUT` regulates at **1.207 V**, not the 0.8 V assumed while the part was
+unchosen:
+
+```
+  Rtop/Rbot 0.657 at 2 V to 48.7 at 60 V   = 74:1
+  with Rtop 48.7k: Rbot 1.00k at 60 V ... 74.1k at 2 V
+  conductance 1000 uS ... 13.5 uS
+```
+
+Still **linear in conductance**, so binary-weighted switched resistors still
+give uniform steps — 10 bits is 57 mV as before. And the part's 1.3 V minimum
+output clears our 2 V floor.
 
 ## The inductor
 
@@ -398,9 +497,7 @@ the box forward.**
   secondaries? Two toroids give matched channels and are already half-bought;
   one larger lump is likely cheaper per VA but must not be centre-tapped.
 - Soft start: NTC inrush limiter, or a resistor bypassed by a relay.
-- Converter: 4-switch buck-boost controller, or boost-then-buck. Not chosen —
-  but it **is** an analog controller closing its own loop, with the Pico only
-  moving the setpoint. See [`control.md`](control.md).
+- FET selection for the four switches, and the heatsinking that follows.
 - Toroid or a gapped ferrite E-core on a bobbin? The toroid is specified above
   and has the closed flux path, which two converters and a mains filter will
   appreciate. But a bobbin is far easier to hand-wind — you wind it off the

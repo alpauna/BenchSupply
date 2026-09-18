@@ -9,7 +9,7 @@ firmware is not running.
 import math
 
 # ---- the divider -----------------------------------------------------------
-VMIN, VMAX, VREF, RTOP = 2.0, 60.0, 0.8, 74e3
+VMIN, VMAX, VREF, RTOP = 2.0, 60.0, 1.207, 48.7e3   # LT8705 FBOUT
 Gmin, Gmax = (VMIN/VREF-1)/RTOP, (VMAX/VREF-1)/RTOP
 print("=== Setpoint divider: Vout = Vref*(1 + Rtop*G) ===")
 print(f"  Vref {VREF} V, Rtop {RTOP/1e3:.0f}k")
