@@ -145,6 +145,7 @@ print(f"  {'TOTAL':<26} {tot*1000:>5.0f} mA = {tot*5:.1f} W")
 for w in (5,10):
     print(f"    {w:>2} W module -> {w/5:.1f} A, {w/5/tot:.1f}x headroom"
           f" {'MARGINAL' if w/5 < tot*1.4 else 'comfortable'}")
+print(f"    module in hand: 5 V 3 A = 15 W -> {3.0/tot:.1f}x headroom, comfortable")
 print("  It must NOT power the isolated sides - that would wire the two")
 print("  channels together. Each powers itself off its own 40 V rail, or off")
 print("  its controller's bias output.")

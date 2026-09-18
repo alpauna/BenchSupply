@@ -297,8 +297,12 @@ wall and a 54 mm pad there is no danger.
 
 ### The shield: two open faces, and a slot that is open at the bottom
 
-The inlet's spade terminals are the only exposed mains inside this box. With the
-lid off they are a finger away. The shield covers them.
+The inlet's spade terminals are exposed mains. With the lid off they are a
+finger away. The shield covers them.
+
+**They are no longer the only exposed mains.** The 5 V control module is an
+open-frame board — live AC terminals and a live primary side on a bare PCB. It
+needs the same treatment; see [`docs/control.md`](docs/control.md#the-module-is-open-frame).
 
 It is a cup with **two open faces**: the one against the END B wall, where the
 inlet comes through, and the **bottom**, where it stands on the floor.

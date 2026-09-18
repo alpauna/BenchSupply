@@ -396,8 +396,12 @@ module plug_cuts() {
 /* ---------------------------------------------------------------------------
    MAINS SHIELD — a hood over the back of the inlet
    ---------------------------------------------------------------------------
-   The inlet's spade terminals are the only exposed mains inside this box. With
-   the lid off they are a finger away. This covers them.
+   The inlet's spade terminals are exposed mains. With the lid off they are a
+   finger away. This covers them.
+
+   They are NOT the only exposed mains any more: the 5 V control module is an
+   open-frame board with its own live AC terminals and a live primary side.
+   That wants covering too - see docs/control.md.
 
    A cup with TWO open faces: the one against the back wall, where the inlet
    comes through, and the BOTTOM, where it stands on the floor.

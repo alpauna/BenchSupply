@@ -310,6 +310,63 @@ construction. Either a small 60 V-capable buck per channel, or — check this
 first — **the switching controller's own VCC/bias output**, which on many parts
 can spare the tens of milliamps this needs.
 
+### The module, and it is open frame
+
+| | |
+|---|---|
+| Rating | **5 V 3 A, 15 W**, isolated, 100–264 VAC in |
+| Board (YS-U20S drawing) | 86.5 × 46.5 mm, ~24 mm tall (2 mm PCB + 22 mm parts) |
+| Mounting | 4 × Ø3.2 |
+| Terminals | 5.08 mm screw blocks both ends — `ACL`/`ACN` in, `+V`/`−V` out |
+
+**3 A against a 750 mA load is 4× headroom** — comfortably past the "buy the
+10 W not the 5 W" line, and enough to fix the airflow shortfall below by going
+to 60 mm fans without worrying about the supply.
+
+Screw terminals at both ends are welcome: no soldering to mains, and the DC side
+lands straight on the control rail. The universal 100–264 V input also means it
+does not care what the mains does.
+
+> **Two datasheets, possibly two parts.** The mechanical drawing is a
+> **YS-U20S** at 86.5 × 46.5 × 24; the linked NOYITO listing describes itself as
+> *ultra-small*, which 86.5 mm is not. They may be the same board rebadged or
+> they may not. **Take the mechanical numbers from whichever one actually
+> arrives** — the enclosure depends on them, and the "on edge in the back bay"
+> conclusion below is computed from the YS-U20S drawing.
+
+#### The module is open frame
+
+This is the part that matters. It is a **bare PCB with live AC terminals and a
+live primary side** — so the inlet's spades are no longer the only exposed mains
+in the box, and the [shield](../README.md#the-inlet-is-on-the-back-wall--and-brought-a-shield)
+no longer covers everything that needs covering.
+
+It needs the same treatment: a printed hood over it, or mounting it inside an
+extension of the mains shield. The same rule applies either way — **no exposed
+mains that a finger can reach with the lid off.**
+
+#### Where it fits
+
+```
+  back bay (mains)   34 mm:  lying flat (46.5 deep) NO  | on edge (24 deep) yes
+  front bay (LV)     50 mm:  lying flat (46.5 deep) yes | on edge (24 deep) yes
+```
+
+It belongs in the **back bay**, because it is a mains part and the front wall is
+the low-voltage side — and it only fits there **on edge**, standing 46.5 mm tall
+in 24 mm of depth, with 10 mm to spare. Lying flat it would need 46.5 mm and the
+back bay has 34.
+
+#### It makes the inlet a distribution point
+
+The IEC inlet now feeds **three** loads: toroid A's primary, toroid B's primary,
+and this module's AC input. The shield was sized for three booted spades
+*leaving* it. It is now a junction, and either it grows to hold a small mains
+terminal block or that block lives beside it under its own cover.
+
+Worth settling before the toroid layout is drawn, because it changes what the
+back bay has to contain.
+
 ### Check the fans actually move the air
 
 ```
