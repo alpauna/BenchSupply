@@ -125,6 +125,62 @@ BENCH SUPPLY - MAINS ENTRY, DISTRIBUTION AND SOFT START
   current, so it has to be the bigger part.
 
 
+3b. THE COILS ARE NOT OPTICALLY ISOLATED, AND MUST NOT NEED TO BE
+-----------------------------------------------------------------
+
+  ** THE RELAY IS THE BARRIER. That is what a relay is. **
+
+  Coil on the Pico's 5 V, contacts on 120 VAC, separated inside the part by
+  ~4 kV. An optocoupler in front of the coil would isolate the Pico from its
+  own 5 V rail and nothing else.
+
+  And the Pico side is ALREADY mains-isolated by the 5 V module's own
+  transformer. Two independent barriers in series:
+
+     mains --[5 V module transformer]-- Pico gnd --[FET]-- coil
+     mains --[relay contacts | coil]------------------------+
+
+  The optocouplers elsewhere in this design exist because the two CHANNELS
+  float at up to 60 V from each other and have to stack in series. There is
+  no relay there to do the job. Here there is.
+
+  What to check instead:
+    - coil-to-contact rating: a proper mains relay, 4 kV class. Not a signal
+      relay that merely prints 250 V on the contacts.
+    - the PCB. Mains relays put coil and contact pins at opposite ends of the
+      package for creepage. Do not undo that with a trace.
+    - flyback diode across every coil.
+
+
+3c. DO NOT SUBSTITUTE A ZERO-CROSS SSR
+--------------------------------------
+
+  An SSR is optically coupled inside, so it looks like the obvious "already
+  isolated" answer. It is the wrong part here, and the main reason is not
+  the one people expect.
+
+  ** ZERO-CROSS SWITCHING IS EXACTLY WRONG FOR A TRANSFORMER. **
+
+  Flux is the integral of voltage. Closing at the voltage ZERO CROSSING
+  integrates a full half cycle and drives the core to twice its normal peak
+  flux - saturation, and the worst inrush available. Closing at the voltage
+  PEAK is the gentle case.
+
+  Zero-cross SSRs are built for resistive loads. On a toroid they turn the
+  one thing this whole section exists to limit into its worst case.
+
+  Two lesser reasons:
+    - a triac SSR drops ~1 V, so 3 W per relay continuously, in a box
+      already shedding 108 W. A mechanical contact drops nothing.
+    - SSRs fail SHORT. A mechanical relay fails open.
+
+  And note the soft start makes the phase question moot anyway: with R in
+  circuit the peak is 17 A whenever in the cycle RLY_SOFT happens to close.
+  That is the third quiet virtue of the two-stage arrangement - it removes
+  the switching-angle sensitivity entirely, so a plain random-closing
+  mechanical relay is all it needs.
+
+
 4. STAGGER THE TWO TRANSFORMERS
 -------------------------------
 
