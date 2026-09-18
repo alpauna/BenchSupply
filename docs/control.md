@@ -525,15 +525,27 @@ each secondary, 15 A on each DC rail, **58 V type** because the rail reaches
 Soft start is in [`design/schematic-mains.txt`](../design/schematic-mains.txt),
 and it splits along the same fail-safe line as everything else:
 
-| relay | if it never closes | owner |
-|---|---|---|
-| `RLY_MAIN` | no power to the transformers, no output. Inconvenient, safe | **the Pico** |
-| `RLY_BYP` | the 10 Ω soft-start resistor sits at **85 W** and burns | **hardware timer** |
+Two parallel paths — **soft first, then main** — rather than a series main with
+a parallel bypass:
 
-An RC or 555 delay of ~300 ms cannot hang, loop, or be halfway through a
-reflash. The Pico closing `RLY_MAIN` also lets it **stagger the two transformers
-~200 ms apart**, which halves the combined inrush peak from 34 A to 17 — one
-line of firmware, since it is closing them anyway.
+| relay | duty | owner |
+|---|---|---|
+| `RLY_SOFT` | energises through the 10 Ω resistor, **300 ms one-shot** | 555 monostable |
+| `RLY_MAIN` | bypasses the resistor, carries 2.92 A running | **the Pico** |
+
+**The one-shot is the whole safety argument.** `RLY_SOFT` drops out by itself
+whether or not anything else worked — so if `RLY_MAIN` never closes, the box is
+simply off rather than holding 85 W in a resistor. In a series-main-plus-bypass
+arrangement that same failure leaves the resistor cooking indefinitely and the
+best you can do is make it unlikely. Here **the dangerous state cannot persist
+by construction.**
+
+It also means neither relay ever switches a cold toroid: `RLY_SOFT` sees inrush
+already limited to 17 A, and `RLY_MAIN` closes into an energised transformer.
+
+The Pico triggering the sequence lets it **stagger the two transformers ~200 ms
+apart**, halving the combined inrush from 34 A to 17 — one line of firmware,
+since it is triggering them anyway.
 
 Four more 5 V coils at ~80 mA bring the control rail to **1070 mA against the
 module's 3 A**. Flyback diode across every coil: a relay coil is far more

@@ -53,19 +53,23 @@ BENCH SUPPLY - MAINS ENTRY, DISTRIBUTION AND SOFT START
   runs whenever the box is powered.
 
 
-2. SOFT START - ONE PER TRANSFORMER
------------------------------------
+2. SOFT START - TWO STAGE, ONE PER TRANSFORMER
+---------------------------------------------
 
-                    RLY_MAIN                RLY_BYP
-                     10 A                    10 A
-       from F1 o-----/ o----+-----------------/ o-----+-----o to primary
-                            |                         |
-                            +------[ R 10R 20W ]------+
+                    RLY_SOFT           R 10R 20W
+       from F1 o--+-----/ o------------[\/\/\]------+-----o to primary
+                  |                                 |
+                  |          RLY_MAIN               |
+                  +-------------/ o-----------------+
+
+  Two parallel paths. Soft first, then main.
 
   Sequence:
-    1. rocker on           -> 5 V module up, Pico boots, fan 1 runs
-    2. Pico closes RLY_MAIN -> primary energises THROUGH R, inrush limited
-    3. ~300 ms later        -> RLY_BYP closes, R is shorted out, running
+    1. rocker on            -> 5 V module up, Pico boots, fan 1 runs
+    2. RLY_SOFT closes      -> primary energises THROUGH R, inrush limited
+    3. ~250 ms later
+       RLY_MAIN closes      -> R bypassed, running normally
+    4. RLY_SOFT drops out   -> R out of circuit entirely
 
   Without R, a 350 VA toroid's inrush is 10-100x its 2.92 A rating:
 
@@ -79,39 +83,55 @@ BENCH SUPPLY - MAINS ENTRY, DISTRIBUTION AND SOFT START
     10.0R          17 A                 85 W            26 J
     22.0R           8 A                187 W            56 J
 
-  10 R holds the first peak to 17 A. 26 J into a 20 W wirewound is nothing
-  as a 0.3 s pulse - and fatal if it never ends.
+
+3. RLY_SOFT IS A ONE-SHOT, AND THAT IS THE WHOLE SAFETY ARGUMENT
+----------------------------------------------------------------
+
+  ** RLY_SOFT IS DRIVEN BY A 555 MONOSTABLE, ~300 ms. NOT BY A LEVEL. **
+
+  It drops out by itself whether or not anything else worked:
+
+    RLY_MAIN closes in time -> R bypassed, running. Normal.
+    RLY_MAIN never closes   -> RLY_SOFT drops at 300 ms and the box is
+                               simply OFF. Nothing burns. Nothing to detect,
+                               nothing to recover from.
+
+  The resistor can only ever be in circuit for one monostable period. Worst
+  case is 85 W x 0.3 s = 26 J per attempt, and even retriggered continuously
+  that is a warm 20 W wirewound rather than a fire.
+
+  This is why the two-stage arrangement beats a series main with a parallel
+  bypass. In that one, RLY_MAIN closing without RLY_BYP following leaves R
+  at 85 W indefinitely, and the best you can do is make it unlikely with a
+  timer. Here the dangerous state cannot persist by construction.
+
+  Same principle as fan 1 being hardwired and as "switches open = 2 V": the
+  failure direction is structural, not a promise.
+
+  RLY_MAIN may be the Pico's. Its failure is benign now - the box just does
+  not come on.
 
 
-3. WHICH RELAY IS FIRMWARE'S AND WHICH IS NOT
----------------------------------------------
+3a. CONTACT DUTIES - NEITHER RELAY SWITCHES A COLD TOROID
+---------------------------------------------------------
 
-  ** RLY_BYP MUST BE ON A HARDWARE TIMER. NOT THE PICO. **
+  RLY_SOFT  closes into inrush limited by R: 17 A peak.
+            Carries 2.92 A for 300 ms only -> a SMALL relay will do.
+  RLY_MAIN  closes into an ALREADY ENERGISED transformer, so it sees no
+            inrush at all, then carries 2.92 A continuously.
 
-  Ask what each failure does:
-
-    RLY_MAIN never closes   -> no power to the transformers -> no output.
-                               Inconvenient. Safe. Firmware may own this.
-
-    RLY_BYP never closes    -> R sits at 85 W and burns, inside a plastic
-                               box, next to the mains shield.
-                               Firmware must NOT own this.
-
-  So: an RC or 555 delay of ~300 ms, triggered by RLY_MAIN's own coil or by
-  a spare contact on it. It costs two parts and cannot hang, get stuck in a
-  loop, or be halfway through a reflash.
-
-  Same principle as fan 1 being hardwired and as "switches open = 2 V":
-  the failure direction has to be the safe one, structurally.
+  That is the second advantage of this topology. With a series main plus
+  parallel bypass, RLY_MAIN takes the limited inrush AND the continuous
+  current, so it has to be the bigger part.
 
 
 4. STAGGER THE TWO TRANSFORMERS
 -------------------------------
 
-  Closing both RLY_MAINs together makes the inrush peaks add - up to 34 A.
-  Stagger them ~200 ms apart and it stays at 17 A, with the second starting
-  into a mains already loaded. The Pico is closing them anyway, so this
-  costs one line of firmware.
+  Firing both RLY_SOFTs together makes the inrush peaks add - up to 34 A.
+  Stagger the two sequences ~200 ms apart and it stays at 17 A, with the
+  second starting into a mains already loaded. The Pico is triggering them
+  anyway, so this costs one line of firmware.
 
 
 5. COILS
@@ -122,12 +142,12 @@ BENCH SUPPLY - MAINS ENTRY, DISTRIBUTION AND SOFT START
       Pico                         100 mA
       3 fans                       600 mA
       opto LEDs                     50 mA
-      2 x RLY_MAIN                 160 mA
-      2 x RLY_BYP                  160 mA
+      2 x RLY_MAIN                 160 mA   continuous while running
+      2 x RLY_SOFT                 160 mA   300 ms only, never both
       TOTAL                       1070 mA   against the module's 3 A = 2.8x
 
-  Contacts: 10 A / 250 VAC is ample. RLY_BYP closes into an already-running
-  load, not into an inrush, because R has done that job first.
+  Contacts: 10 A / 250 VAC is ample for RLY_MAIN. RLY_SOFT can be smaller -
+  it carries 2.92 A for 300 ms and never switches a cold toroid.
 
   Drive: the 2N7002 boards WITH THE AO3400 SWAP. 80 mA is most of a 2N7002's
   115 mA rating before you count the turn-off spike.
