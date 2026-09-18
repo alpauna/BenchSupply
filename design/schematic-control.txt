@@ -1,0 +1,193 @@
+BENCH SUPPLY - CONTROL BOARD
+Pico, the barrier drive, fan staging, sensors, relay sequencing
+===============================================================================
+
+  ** THE OPTOCOUPLERS ARE NOT ON THIS BOARD. **
+
+  They live on the converter boards, one set per channel. That is deliberate
+  and it is what keeps this board simple: every signal leaving here is
+  referenced to the Pico's ground, including the LED drive going out and the
+  phototransistor collector coming back. The isolation happens over there.
+
+  Put the optos here instead and this board would carry THREE isolated
+  domains - Pico, channel A, channel B - with barrier slots between them.
+  There is no reason to.
+
+  So: ONE ground domain on this board. The 5 V module feeds it, and the
+  module's own transformer is what isolates the whole thing from mains.
+
+
+1. GPIO BUDGET - CHECK THIS BEFORE ADDING ANYTHING
+--------------------------------------------------
+
+  SPI0 to channel A: SCK MOSI MISO CS_SW CS_AD     5
+  SPI1 to channel B: SCK MOSI MISO CS_SW CS_AD     5
+  RLY_MAIN drive x2                                2
+  NE556 trigger x2 (the RLY_SOFT one-shots)        2
+  fan 2 and fan 3 drive                            2
+  1-Wire bus (3 sensors)                           1
+  display, I2C                                     2
+  encoder A: A B push                              3
+  encoder B: A B push                              3
+  --------------------------------------------------
+  TOTAL                                           25   of 26. ONE SPARE.
+
+  Two things buy room if it gets tighter:
+    - share one SPI across both channels, picking with CS. Costs 10 mA of
+      GPIO drive into two opto LEDs at once instead of 5 - inside the
+      RP2040's 12 mA, but with nothing left.
+    - one encoder plus a channel-select button instead of two.
+
+  Keeping SPI0 and SPI1 separate is worth the pins: the channels are
+  isolated from each other, and a shared clock means one GPIO driving LEDs
+  in two different isolated domains.
+
+
+2. POWER
+--------
+
+   from the 5 V module          +5V rail
+   (back wall, always on        o---+-------+--------+--------+--------+
+    with the rocker)                |       |        |        |        |
+        +5V o--------+----------- Pico    fans    relay    opto     1-Wire
+                     |            VSYS    (3)     coils    LEDs     pull-up
+        GND o--------+                     |       (4)
+                     |                     |
+                    ===  470u + 100n     ** fans get their own feed or their
+                     |                      own decoupling: commutation spikes
+                    GND                     land on the rail the ADC reads
+                                            millivolts of shunt signal from **
+
+   ** VSYS, PIN 39. NOT VBUS. **
+   VBUS is the USB connector's 5 V with nothing in between, so driving it
+   back-feeds whatever host is plugged in. USB reaches VSYS through the
+   on-board Schottky D1, so a cable can stay connected for programming while
+   the module's 5 V holds VSYS up. Ground on pin 38.
+
+   Budget (docs/calc/control.py):
+     Pico 100 mA + 3 fans 600 + opto LEDs 50 + 4 relay coils 320 = 1070 mA
+     against the module's 3 A. 2.8x.
+
+
+3. THE BARRIER DRIVE - LOGIC OUT, LOGIC BACK
+--------------------------------------------
+
+   Per channel, to a 6-pin header. All Pico-referenced.
+
+     GP -> SCK    ---->|  to OK1 LED anode on the converter board
+     GP -> MOSI   ---->|  to OK2
+     GP -> CS_SW  ---->|  to OK3
+     GP -> CS_AD  ---->|  to OK4
+     GP <- MISO   <----|  from OK5 phototransistor collector
+     GND ------------->|
+
+   The 330R LED resistors are on the converter board with their optos.
+   ** The MISO pull-up (10k to 3V3) belongs HERE **, on the Pico side -
+   it is the only one of the five that is not in an isolated domain.
+
+   Clock at a few kHz. A 10k pull-up and a phototransistor make edges tens
+   of microseconds long, so 10 bits takes single-digit milliseconds. That is
+   invisible to someone turning a knob, and trying to run it at SPI speeds
+   will simply not work.
+
+
+4. FANS
+-------
+
+   FAN1 o----+------------------------------o +5V     ALWAYS ON. NO SWITCH.
+             |
+            D1 flyback, cathode to +5V
+
+   FAN2 o----+----[ AO3400 on a 2N7002 board ]---- GND
+             |            gate <- GP, 220R + 10k pulldown
+            D2
+
+   FAN3 o----+----[ AO3400 on a 2N7002 board ]---- GND
+             |
+            D3
+
+   ** FAN 1 IS HARDWIRED. ** A box shedding 108 W with no fans because the
+   Pico is halted - or because someone is reflashing it - is a fire and not
+   a bug. Baseline cooling has no software in the path.
+
+   AO3400, not the 2N7002 the boards ship with: a 200 mA fan is 1.7x a
+   2N7002's 115 mA rating, and 2-3x that at startup. Same SOT-23 pinout
+   (G-S-D), same 220R and 10k, a transistor swap rather than a redesign.
+
+   Flyback diode on EVERY fan. The driver board does not carry one, and it
+   matters more with an AO3400's 30 V than the 2N7002's 60.
+
+
+5. RELAY SEQUENCING - TWO LINES PER CHANNEL, NOT THREE
+------------------------------------------------------
+
+   GP -> RLY_MAIN_A  --> FET on the mains board -> RLY_MAIN coil
+   GP -> TRIG_A      --> NE556 trigger, active low
+
+   Same for B.
+
+   The Pico does NOT drive RLY_SOFT. It triggers a monostable that does, and
+   that monostable drops the relay out by itself whether or not anything
+   else worked. See schematic-mains.txt section 3.
+
+   Sequence per channel:  TRIG -> (RLY_SOFT closes, inrush limited by 10R)
+                          +250 ms -> RLY_MAIN closes, R bypassed
+                          +300 ms -> RLY_SOFT drops out on its own
+
+   Stagger the two channels ~200 ms apart. Firing both together makes the
+   inrush peaks add - 34 A instead of 17 - and the Pico is triggering them
+   anyway, so it costs one line of firmware.
+
+   A 3.3 V GPIO pulled low triggers a 5 V 556 correctly: its threshold is
+   1/3 Vcc = 1.67 V. No level shifter needed on the trigger.
+
+
+6. TEMPERATURE - 1-WIRE, ONE PIN FOR ALL OF IT
+----------------------------------------------
+
+   3V3 o---[ 4k7 ]---+---o DQ ---- GP
+                     |
+                     +---- DS18B20 probe 1 : pass-element heatsink, channel A
+                     +---- DS18B20 probe 2 : pass-element heatsink, channel B
+                     +---- DS18B20 probe 3 : intake air
+
+   Stainless probes, and the packaging is the point: they are electrically
+   isolated BY CONSTRUCTION. The heatsinks are tied to their own channels'
+   grounds, so channel A's sink and channel B's sink sit up to 60 V apart
+   once the outputs are stacked. A metal-cased sensor bolted to each, both
+   wired back here, would BRIDGE THE TWO CHANNELS.
+
+   (Good for a 60 V heatsink. Not safety insulation - not against mains.)
+
+   The heatsink probe drives the staging; it leads everything else by a long
+   way. The intake probe goes in the fan stream and away from any heatsink
+   or it reads its own self-heating.
+
+     fan 2   on 45 C   off 40 C
+     fan 3   on 55 C   off 48 C
+
+   Thresholds with hysteresis, NOT "temperature still rising" - a derivative
+   trigger fires on every load step and lid opening and is unloggable to
+   tune. And a FAILED READ - CRC error, missing sensor, shorted bus - must
+   stage UP. Treat it as hot. Not as cold, and not as hold-the-last-value.
+
+
+7. USER INTERFACE
+-----------------
+
+   Display   I2C, 2 pins, on a header. SSD1306-class or similar.
+   Encoders  one per channel: A, B, push. 3 pins each.
+
+   Both are OPEN - see docs/control.md. What is fixed is that they cost 8
+   GPIOs between them and there is only one spare.
+
+
+8. WHAT IS DELIBERATELY NOT ON THIS BOARD
+-----------------------------------------
+
+  * No optocouplers. They are on the converter boards - see the top.
+  * No mains. Not one net on this board is above 5 V.
+  * No relay coils or their FETs. Those are on the mains board, next to
+    the contacts they switch.
+  * No current sensing. The INAs are on the converter boards, at the shunts,
+    and their readings arrive as ADC counts over the barrier.

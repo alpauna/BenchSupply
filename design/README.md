@@ -10,6 +10,7 @@ reproduce the numbers.
 | Mains entry, distribution, soft start | 1 | [`schematic-mains.txt`](schematic-mains.txt) | [`bom-mains.csv`](bom-mains.csv) |
 | Rectifier and bulk | **2** | [`schematic-rectifier.txt`](schematic-rectifier.txt) | [`bom-rectifier.csv`](bom-rectifier.csv) |
 | LT8705 converter | **2** | [`schematic-converter.txt`](schematic-converter.txt) | [`bom-converter.csv`](bom-converter.csv) |
+| Control - Pico, fans, sensors, UI | 1 | [`schematic-control.txt`](schematic-control.txt) | [`bom-control.csv`](bom-control.csv) |
 
 One mains board. One rectifier and one converter **per channel**.
 
@@ -45,8 +46,18 @@ at 85 W indefinitely.
 **Fan 1 is hardwired on.** A box shedding 108 W with no fans because the Pico is
 halted, or because someone is reflashing it, is a fire and not a bug.
 
+## Where the optocouplers live
+
+**On the converter boards, not on the control board.** Every signal leaving the
+control board is Pico-referenced, including the LED drive going out and the
+phototransistor collector coming back — the isolation happens at the far end.
+
+Put them on the control board instead and it would carry **three** isolated
+domains — Pico, channel A, channel B — with barrier slots between them. There is
+no reason to.
+
 ## What is not here yet
 
-The control board — Pico, opto barrier, fan drivers, 1-Wire sensors, the 5 V
-module's connections. Fully specified in [`../docs/control.md`](../docs/control.md),
-not yet drawn.
+Nothing. All four boards are drawn. What remains before layout is the
+[layout spec](../docs/) — net classes, trace widths, hot-loop targets — and
+confirming the three items above.

@@ -1,0 +1,18 @@
+Ref,Qty,Value,Description,Rating / key spec,Package,Suggested part,Notes
+U1,1,-,Raspberry Pi Pico,RP2040; 26 usable GPIO; 2x SPI; PIO,module,Raspberry Pi Pico,"POWERED ON VSYS (PIN 39), NOT VBUS. VBUS is the USB connector's 5 V with nothing in between - driving it back-feeds the host. USB reaches VSYS through the on-board D1 so a cable can stay plugged in for programming"
+D1,1,-,Schottky diode,40 V; 1 A,SOD-123,1N5819,"In the 5 V feed to VSYS. Protects the module in the other direction; 5 V less the drop lands VSYS near 4.7 V, well inside its 1.8-5.5 V range"
+C1,1,470u,Electrolytic capacitor,10 V; low ESR,radial,-,Bulk on the 5 V rail. Fans draw their worst at startup - all three at once if the box comes up hot
+C2-C6,5,100n,Ceramic capacitor,50 V; X7R,0603,-,Decoupling
+R1;R2,2,10k,Pull-up resistor,1%,0805,-,"MISO pull-up, one per channel. THE ONLY ONE OF THE FIVE OPTO PULL-UPS THAT BELONGS ON THIS BOARD - the other four are in isolated domains on the converter boards"
+R3,1,4k7,Pull-up resistor,1%,0805,-,1-Wire bus to 3V3
+J1;J2,2,-,Header - barrier drive,6-pin; 2.54 mm,2.54 mm,-,"SCK MOSI CS_SW CS_AD MISO GND to each converter board. ALL PICO-REFERENCED - the optos are over there, so nothing on this cable is isolated or needs to be"
+J3,1,-,Header - mains board,6-pin; 2.54 mm,2.54 mm,-,RLY_MAIN_A RLY_MAIN_B TRIG_A TRIG_B +5V GND. The Pico does NOT drive RLY_SOFT - it triggers the monostable that does
+J4-J6,3,-,Fan connector,2-pin; 2.54 mm,2.54 mm,-,FAN1 is wired to +5V directly and has no driver. Fans 2 and 3 are switched
+D2-D4,3,-,Flyback diode,100 V; 1 A,SOD-123,1N4148,"ACROSS EVERY FAN. The 2N7002 driver board does not carry one, and it matters more with an AO3400's 30 V than a 2N7002's 60"
+Q1;Q2,2,-,N-channel MOSFET - fan drive,30 V; 28 mOhm at Vgs 4.5 V; true logic level,SOT-23,AO3400A,"On 2N7002 driver boards WITH THE FET SWAPPED. A 200 mA fan is 1.7x a 2N7002's 115 mA rating and 2-3x that at startup. Same G-S-D pinout - a transistor swap, not a redesign"
+-,2,-,2N7002 driver board,10.9 x 17.1 mm; M2 mount; 220R gate + 10k pulldown,-,hardware/2N7002 Driver,"TWO, not three. Fan 1 is hardwired on and has no FET at all"
+J7,1,-,Header - 1-Wire,3-pin; 2.54 mm,2.54 mm,-,3V3 DQ GND to three DS18B20 probes in parallel
+-,3,-,DS18B20 temperature probe,stainless; 12-bit; 3 m lead,probe,-,ELECTRICALLY ISOLATED BY CONSTRUCTION - which is the point. The heatsinks sit at their own channels' grounds and are up to 60 V apart when stacked; a metal-cased sensor on each would bridge the channels. Good for 60 V - not safety insulation
+J8,1,-,Header - display,4-pin I2C; 2.54 mm,2.54 mm,-,SSD1306-class. OPEN - see docs/control.md
+J9;J10,2,-,Header - rotary encoder,5-pin; 2.54 mm,2.54 mm,-,A B push per channel. 8 GPIOs between the two of them and there is ONE spare on the Pico
+J11,1,-,Terminal block - 5 V in,2-pin; 5.08 mm,PCB,-,From the 5 V module on the back wall. Always on with the rocker - it powers the Pico that closes the relays and the fan that runs whenever the box is powered
