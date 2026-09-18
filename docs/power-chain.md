@@ -630,7 +630,7 @@ ran cool and weighed little. None of that survives:
 | Floor | 3 mm printed, M4 pads | **now 6 mm** — 3 mm bowed 2.1 mm under 5.8 kg, 6 gives 0.27. Still wants a steel spreader under each bolt |
 | Heat | a warm supply | **~100 W** at full output — 64 W converters, 37 W transformers |
 | Airflow | one 40 mm fan, lengthwise over a long supply | nowhere near enough |
-| Mains | one inlet, 10 A fuse | **5.8 A** draw, and the inrush of two 350 VA toroids. Needs a soft start |
+| Mains | one inlet, 10 A fuse | **5.8 A** draw, and the inrush of two 350 VA toroids — soft start in [`schematic-mains.txt`](../design/schematic-mains.txt) |
 
 The inlet-on-END-B and the printed mains shield are still good work and the
 reasoning behind them still holds — mains at one end, a hood that uses the floor
@@ -642,7 +642,6 @@ the box forward.**
 - Second ST-1228, or one ~650 VA transformer with two genuinely independent
   secondaries? Two toroids give matched channels and are already half-bought;
   one larger lump is likely cheaper per VA but must not be centre-tapped.
-- Soft start: NTC inrush limiter, or a resistor bypassed by a relay.
 - Confirm Qg on the chosen FET, and whether `EXTVCC` is fed externally.
 - Toroid or a gapped ferrite E-core on a bobbin? The toroid is specified above
   and has the closed flux path, which two converters and a mains filter will

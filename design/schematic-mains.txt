@@ -1,0 +1,135 @@
+BENCH SUPPLY - MAINS ENTRY, DISTRIBUTION AND SOFT START
+120 VAC in, two toroid primaries out, plus the 5 V control module
+===============================================================================
+
+  Lives on the BACK WALL behind the printed shield. This is the only mains
+  in the box. Everything downstream of the transformers is floating.
+
+  The inlet feeds THREE loads, which is why it is a distribution point and
+  not just a socket: toroid A, toroid B, and the 5 V control module.
+
+
+1. ENTRY AND DISTRIBUTION
+-------------------------
+
+   IEC C14 inlet
+   with rocker + fuse drawer
+        L o-----/ /-----+-------------------+-------------------+
+                F0      |                   |                   |
+             10 A T    F1                  F2                  F3
+             250 V    5 A T               5 A T               1 A T
+             (in the  250 V               250 V               250 V
+              drawer)  |                   |                   |
+                       |                   |                   |
+                    [soft start A]      [soft start B]         |
+                       |                   |                   |
+                       |                   |                   |
+        N o------------+---+---------------+---+---------------+---+
+                           |                   |                   |
+                       toroid A            toroid B            5 V module
+                       primary             primary             ACL / ACN
+                       (brown 18AWG)                           (always on)
+
+        E o--------------------+--> supply earth terminals, star point
+                               +--> any exposed metalwork
+                                    The enclosure is plastic, but the C14's
+                                    earth pin still has to go somewhere.
+
+  All three are 5 x 20 mm CARTRIDGE, 250 V. Mains cannot use blade fuses.
+  Values allow for derating - a cartridge runs at ~89% of rating at the 45 C
+  inside this box:
+
+      F0  10 A T   carries 5.99 A   both channels at full output at once
+      F1  5 A T    carries 2.92 A   4 A derates to 3.6 and blows on a warm day
+      F2  5 A T    carries 2.92 A
+      F3  1 A T    carries 0.16 A   the 5 V module, 5.6x margin
+
+  F0 is also the inlet module's own 10 A ceiling, so there is no room above
+  it. It only binds with both channels at full output simultaneously, and
+  each leg has its own fuse - but it is the reason not to grow the load.
+
+  ** The 5 V module is ALWAYS ON with the rocker, ahead of any relay. **
+  It has to be: it powers the Pico that closes the relays, and the fan that
+  runs whenever the box is powered.
+
+
+2. SOFT START - ONE PER TRANSFORMER
+-----------------------------------
+
+                    RLY_MAIN                RLY_BYP
+                     10 A                    10 A
+       from F1 o-----/ o----+-----------------/ o-----+-----o to primary
+                            |                         |
+                            +------[ R 10R 20W ]------+
+
+  Sequence:
+    1. rocker on           -> 5 V module up, Pico boots, fan 1 runs
+    2. Pico closes RLY_MAIN -> primary energises THROUGH R, inrush limited
+    3. ~300 ms later        -> RLY_BYP closes, R is shorted out, running
+
+  Without R, a 350 VA toroid's inrush is 10-100x its 2.92 A rating:
+
+      10x ->   29 A      30x ->   88 A      100x ->  292 A
+
+  depending on where in the cycle you switch and on the residual flux. That
+  is what welds switch contacts and trips breakers. With 10 R:
+
+       R     peak inrush   W while in circuit   J over 300 ms
+     4.7R          36 A                 40 W            12 J
+    10.0R          17 A                 85 W            26 J
+    22.0R           8 A                187 W            56 J
+
+  10 R holds the first peak to 17 A. 26 J into a 20 W wirewound is nothing
+  as a 0.3 s pulse - and fatal if it never ends.
+
+
+3. WHICH RELAY IS FIRMWARE'S AND WHICH IS NOT
+---------------------------------------------
+
+  ** RLY_BYP MUST BE ON A HARDWARE TIMER. NOT THE PICO. **
+
+  Ask what each failure does:
+
+    RLY_MAIN never closes   -> no power to the transformers -> no output.
+                               Inconvenient. Safe. Firmware may own this.
+
+    RLY_BYP never closes    -> R sits at 85 W and burns, inside a plastic
+                               box, next to the mains shield.
+                               Firmware must NOT own this.
+
+  So: an RC or 555 delay of ~300 ms, triggered by RLY_MAIN's own coil or by
+  a spare contact on it. It costs two parts and cannot hang, get stuck in a
+  loop, or be halfway through a reflash.
+
+  Same principle as fan 1 being hardwired and as "switches open = 2 V":
+  the failure direction has to be the safe one, structurally.
+
+
+4. STAGGER THE TWO TRANSFORMERS
+-------------------------------
+
+  Closing both RLY_MAINs together makes the inrush peaks add - up to 34 A.
+  Stagger them ~200 ms apart and it stays at 17 A, with the second starting
+  into a mains already loaded. The Pico is closing them anyway, so this
+  costs one line of firmware.
+
+
+5. COILS
+--------
+
+  4 relays, 5 V coils, ~80 mA each:
+
+      Pico                         100 mA
+      3 fans                       600 mA
+      opto LEDs                     50 mA
+      2 x RLY_MAIN                 160 mA
+      2 x RLY_BYP                  160 mA
+      TOTAL                       1070 mA   against the module's 3 A = 2.8x
+
+  Contacts: 10 A / 250 VAC is ample. RLY_BYP closes into an already-running
+  load, not into an inrush, because R has done that job first.
+
+  Drive: the 2N7002 boards WITH THE AO3400 SWAP. 80 mA is most of a 2N7002's
+  115 mA rating before you count the turn-off spike.
+  ** Flyback diode across every coil. ** A relay coil is far more inductive
+  than a fan, and the board does not carry one.

@@ -520,6 +520,25 @@ The **low-voltage** fuses are blade, and they are in
 each secondary, 15 A on each DC rail, **58 V type** because the rail reaches
 44.3 V and standard blade fuses are 32 V parts.
 
+### The Pico owns one relay per transformer, but not both
+
+Soft start is in [`design/schematic-mains.txt`](../design/schematic-mains.txt),
+and it splits along the same fail-safe line as everything else:
+
+| relay | if it never closes | owner |
+|---|---|---|
+| `RLY_MAIN` | no power to the transformers, no output. Inconvenient, safe | **the Pico** |
+| `RLY_BYP` | the 10 Ω soft-start resistor sits at **85 W** and burns | **hardware timer** |
+
+An RC or 555 delay of ~300 ms cannot hang, loop, or be halfway through a
+reflash. The Pico closing `RLY_MAIN` also lets it **stagger the two transformers
+~200 ms apart**, which halves the combined inrush peak from 34 A to 17 — one
+line of firmware, since it is closing them anyway.
+
+Four more 5 V coils at ~80 mA bring the control rail to **1070 mA against the
+module's 3 A**. Flyback diode across every coil: a relay coil is far more
+inductive than a fan, and the driver board does not carry one.
+
 The branch values differ by **8:1**, which is exactly why branch fusing earns
 its keep — one 8 A fuse upstream protects the cord and nothing else. The inlet
 module is rated 10 A; that is a ceiling, not a recommendation.
