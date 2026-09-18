@@ -18,8 +18,9 @@ working enclosure is never in pieces. Diverge freely — from here on, expect to
 > different machine: two 2.9 kg toroids instead of one light switcher, ~100 W of
 > heat instead of a warm box, and 5.8 A of mains with the inrush of two 350 VA
 > transformers. **Do not print the tub from this file expecting it to hold that.**
-> The reasoning is in [`docs/power-chain.md`](docs/power-chain.md), and the
-> control electronics and cooling in [`docs/control.md`](docs/control.md);
+> The reasoning is in [`docs/power-chain.md`](docs/power-chain.md), the control
+> electronics and cooling in [`docs/control.md`](docs/control.md), and the
+> schematics in [`design/`](design/);
 > everything below still describes the box as drawn, which is correct for the
 > old supply.
 

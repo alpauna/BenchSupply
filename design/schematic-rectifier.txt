@@ -1,0 +1,98 @@
+BENCH SUPPLY - RECTIFIER AND BULK, ONE PER CHANNEL
+28 VAC from one ST-1228-T350Q  ->  29-44 V DC rail
+===============================================================================
+
+  Separate from the converter board, for three reasons:
+    - the bridge dissipates ~12 W and needs a real heatsink
+    - four 4700 uF cans are 120 mm of board length and 45 mm tall
+    - none of that belongs beside the converter's feedback node
+
+  And it is SAFE to separate because the bulk-to-Cin path is NOT the hot loop.
+  The switching loop is Cin(ceramic) -> QA/QB, and Cin lives on the converter
+  board. These caps only refill Cin, carrying 6 A dc with 120 Hz ripple, where
+  the interconnect's inductance does not matter.
+
+  ** The condition is that the converter board carries ~40 uF of 100 V
+     ceramic at the FETs. That is what makes the split safe. **
+
+
+SCHEMATIC
+---------
+
+   toroid secondary          F1            BR1                  F2
+   28 VAC, gray 14AWG     20 A blade   35 A bridge          15 A blade
+                           58 V type                          58 V type
+        o------------------/ /---------~   +------+-------------/ /------o +RAIL
+                                                  |                      (29-44 V)
+                                       BR1        |
+        o---------------------------------~   -   |
+                                              |   |
+                                              |   +--+--------+--------+--------+
+                                              |      |        |        |        |
+                                              |     C1       C2       C3       C4
+                                              |    4700u    4700u    4700u    4700u
+                                              |     63 V     63 V     63 V     63 V
+                                              |      |        |        |        |
+                                              |     ===      ===      ===      ===
+                                              |      |        |        |        |
+                                              |      +--------+--------+--------+
+                                              |      |                          |
+                                              |     R1  bleeder 4k7 / 1 W       |
+                                              |      |                          |
+                                              +------+--------------------------+----o RTN
+
+
+PART NOTES
+----------
+
+  F1   20 A BLADE, 58 V TYPE. On the SECONDARY - the fuse most often left
+       out. A shorted bridge draws the transformer's full 12.5 A
+       indefinitely; its thermal fuse will eventually act, but that is a
+       one-shot part potted inside the toroid, so you replace the
+       transformer, not the fuse.
+       The winding carries ~10.1 A rms at full load. 20 A of blade derated
+       to the automotive 75% is 15 A continuous - 1.48x, comfortable.
+
+       ** 58 V TYPE, NOT STANDARD 32 V. ** See F2.
+
+  BR1  GBPC/KBPC-style 35 A bolt-down, NOT a DIP bridge. Two diodes conduct
+       in series at all times, so P = 2 * Vf * Idc = ~12 W at 6 A. It needs
+       the same class of heatsink as the FETs. A low-Vf part saves ~3.5 W.
+       Reverse: the rail peaks at 44.3 V, so 200 V is generous and cheap.
+
+  C1-C4  4700 uF / 63 V, 105 C, low-ESR, snap-in.
+       ** PARALLELED FOR RIPPLE CURRENT, NOT FOR CAPACITANCE. **
+       4 V p-p at 6 A dc needs ~8800 uF, which two cans would cover. But a
+       cap-input filter puts 9-12 A RMS through them and a single 10,000 uF
+       snap-in is rated 3-4 A. Four is a current decision.
+       63 V: the rail peaks at 44.3 V unloaded at high line.
+
+  R1   Bleeder. 18,800 uF at 40 V holds 15 J, which stays there after the
+       power is off and the converter board is unplugged. 4k7 / 1 W bleeds
+       to nothing in a few minutes and wastes 0.34 W. 40 V is not a shock
+       hazard; 15 J into a dropped tool is still a welding event.
+
+  F2   15 A BLADE, 58 V TYPE. 6.02 A carried, 11.2 A at 75% - 1.87x.
+       It cannot save a shorted FET: 15 J through 5 mOhm of ESR is 8000 A
+       and the FET is gone in microseconds. What it stops is the bulk bank
+       emptying into the wreckage afterwards. Speed class is irrelevant at
+       8000 A - any blade fuse opens instantly there.
+
+       ** BOTH BLADE FUSES MUST BE THE 58 V TYPE. **
+       Standard ATO/ATC are 32 VDC parts, and this rail reaches 44.3 V
+       unloaded at high line. Above the rated voltage the arc does not
+       self-extinguish: the fuse does not clear, it just keeps burning.
+       Same body, same holder, different number printed on it.
+
+       Mains fuses cannot be blade at all - 120 VAC needs a 250 V cartridge.
+       Only the low-voltage side goes blade.
+
+
+WHAT IS NOT HERE
+----------------
+
+  * Soft start / inrush limiting. That belongs on the mains PRIMARY, with the
+    transformer - a 350 VA toroid's inrush is a primary-side problem. Still
+    open: NTC, or a resistor bypassed by a relay.
+  * The primary fuse (4 A T) - back wall, with the inlet and its shield.
+  * Any reference to the other channel. These two boards share nothing.

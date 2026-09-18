@@ -501,10 +501,24 @@ is not.
 
 | branch | draw | fuse |
 |---|--:|---|
-| toroid A primary, 350 VA | 2.92 A | 4 A time-delay |
-| toroid B primary, 350 VA | 2.92 A | 4 A time-delay |
+| toroid A primary, 350 VA | 2.92 A | 5 A time-delay |
+| toroid B primary, 350 VA | 2.92 A | 5 A time-delay |
 | 5 V control module | 0.16 A | **1 A time-delay** |
-| **total** | **5.99 A** | 8 A time-delay at the C14 |
+| **total** | **5.99 A** | 10 A time-delay at the C14 |
+
+All three are **5 × 20 mm cartridge, 250 V** — mains cannot use blade fuses.
+Values allow for derating: a cartridge fuse runs at ~89 % of its rating at the
+45 °C inside this box, so the primary went 4 A → 5 A (a 4 A derates to 3.6
+against a 2.92 A load, which blows on a warm day).
+
+The 10 A at the C14 is also the inlet module's own ceiling, so there is no room
+above it. It only binds with both channels at full output simultaneously, and
+each leg has its own branch fuse — but it is the reason not to grow the load.
+
+The **low-voltage** fuses are blade, and they are in
+[`design/schematic-rectifier.txt`](../design/schematic-rectifier.txt): 20 A on
+each secondary, 15 A on each DC rail, **58 V type** because the rail reaches
+44.3 V and standard blade fuses are 32 V parts.
 
 The branch values differ by **8:1**, which is exactly why branch fusing earns
 its keep — one 8 A fuse upstream protects the cord and nothing else. The inlet

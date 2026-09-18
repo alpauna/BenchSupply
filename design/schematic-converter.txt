@@ -1,0 +1,245 @@
+BENCH SUPPLY - CONVERTER BOARD, ONE PER CHANNEL
+LT8705 SYNCHRONOUS 4-SWITCH BUCK-BOOST, 2-60 V / 3 A to 150 W, 200 kHz
+Two of these, identical, isolated from each other. See docs/power-chain.md
+Fed from schematic-rectifier.txt - one rectifier board per converter board.
+===============================================================================
+
+  28 VAC in from its OWN toroid  ->  ~29-44 V rail  ->  2-60 V out, floating
+  Isolated from the other channel by the transformers, so the two outputs
+  stack for +/-60 V or 120 V in series. NOTHING on this board may share a
+  ground with the control side except through the optocouplers.
+
+  PIN NAMES below are functional. CHECK THEM AND THE PIN NUMBERS against the
+  LT8705 datasheet before drawing - this document is the design intent, not a
+  transcription.
+
+
+1. INPUT - FROM THE RECTIFIER BOARD
+-----------------------------------
+
+  +RAIL (29-44 V) and RTN arrive from schematic-rectifier.txt, through that
+  board's 10 A fast fuse. Heavy pair, but its inductance does not matter:
+  this is a 6 A dc feed with 120 Hz ripple, not a switching loop.
+
+  ** Cin IS WHAT MAKES THAT TRUE, AND IT LIVES HERE. **
+
+      +RAIL o---+-------+-------+-------+----> to QA drain, SHORT
+                |       |       |       |
+               10u     10u     10u     10u     4 x 10 uF / 100 V X7R
+               ===     ===     ===     ===     right at the FETs
+                |       |       |       |
+      RTN   o---+-------+-------+-------+----> to QB source, SHORT
+
+  Cin takes all the di/dt. Worst case is BUCK mode, where the input current
+  is pulsed rather than continuous:
+
+      Vout  2 V, D 0.068 -> 0.76 A rms in Cin,  26 mV ripple
+      Vout 12 V, D 0.410 -> 1.48 A rms in Cin, 154 mV ripple
+      Vout 24 V, D 0.819 -> 1.15 A rms in Cin, 307 mV ripple
+
+  In boost mode the input current is the inductor current and is continuous,
+  so Cin barely notices. ~40 uF of 100 V ceramic covers both.
+
+
+2. POWER STAGE
+--------------
+
+         +RAIL                                                    VOUT
+           o                                                       o
+           |                                                       |
+          ===  Cin                                                ===  Cout
+          10u x4                                                  bulk polymer
+          100 V                                                   100 V + 22u
+           |          QA            L1            QD                |  ceramics
+           +----------+-+---+-------UUUUU-------+-+---+-------------+
+           |          | D |         41.5 uH     | D |               |
+           |        G-+-+-+  SW1          SW2   +-+-+-G             |
+           |            S |                       | S               |
+           |              |                       |                 |
+           |          QB  |                   QC  |                 |
+           |          +-+-+                   +-+-+                 |
+           |          | D |                   | D |                 |
+           |        G-+-+-+                   +-+-+-G               |
+           |            S |                     | S                 |
+           +--------------+---------------------+-------------------+
+           |                                                        |
+        Rsen_IN                                                  Rsen_OUT
+        5 mOhm                                                   15 mOhm
+        2512, 1 W                                                2512, 1/2 W
+           |                                                        |
+           o RTN                                                    o RTN
+
+  QA..QD : 100 V, 20-30 mOhm, Qg <= 50 nC.  ONE part number, four positions,
+           but NOT the same duty - see docs/power-chain.md#the-four-switches.
+           QA carries the full 6.02 A continuously in boost and does no
+           switching; QC and QD take all the switching loss.
+           All four TABS ARE AT DIFFERENT POTENTIALS: individual insulators
+           on the shared heatsink.
+
+  L1     : Magnetics 0077083A7, Kool Mu 0254, 60u, hand wound.
+           24 turns of 3 x AWG18 twisted. Wind 25 and measure - AL is +/-8%,
+           which is two turns of spread on its own.
+           Wound coil ~OD 43, HT 19 mm. Custom footprint: two pads plus a
+           keepout. Do NOT pot it until it measures right.
+
+  Rsen_IN  5 mOhm -> 50 mV at 7.4 A.  This is the INPUT CURRENT LIMIT and it
+           is what stops the transformer being overdrawn. It makes the 150 W
+           envelope a hardware property rather than a firmware promise.
+  Rsen_OUT 15 mOhm -> 50 mV at 3 A.  The user-set CC limit.
+           KELVIN both: sense traces from the pad ends, not from the power path.
+
+
+3. LT8705
+---------
+
+                          +--------------------------+
+        +RAIL ---Rin---+--| VIN                      |
+                       |  |                          |
+                     Cvin |                    TG1   |--> QA gate, via 2R2
+                       |  |                    BG1   |--> QB gate, via 2R2
+                      RTN |                    SW1   |--- QA source / QB drain
+                          |                  BOOST1  |--- 100n to SW1, D to GATEVCC
+                          |                          |
+                          |                    TG2   |--> QD gate, via 2R2
+                          |                    BG2   |--> QC gate, via 2R2
+                          |                    SW2   |--- QD source / QC drain
+                          |                  BOOST2  |--- 100n to SW2, D to GATEVCC
+                          |                          |
+     Rsen_IN  +-----------| CSP                      |
+              +-----------| CSN            INTVCC    |--- 4u7 to RTN
+                          |                GATEVCC   |--- 4u7 to RTN
+    Rsen_OUT  +-----------| CSPOUT                   |
+              +-----------| CSNOUT          EXTVCC   |<-- from local 12 V bias
+                          |                          |    (see section 6 - four
+        setpoint -------->| FBOUT                    |     FETs at 200 kHz is a
+        divider           |                          |     real load on INTVCC)
+                          |                          |
+        CC threshold ---->| IMON_OUT / ISET          |
+                          |                          |
+                          |    RT   SS   VC   SYNC   |
+                          +----+----+----+-----+-----+
+                               |    |    |     |
+                            200kHz 100n  comp  GND (or CLKOUT chain)
+                             prog        R+C
+
+  EXTVCC matters here: Qg x 4 x 200 kHz is 24-40 mA out of the internal
+  regulator at 30-50 nC, and more if a fatter FET is substituted. Feeding
+  EXTVCC externally takes the regulator out of the argument.
+
+  The four SRVO_* pins indicate which loop is active - bring them out to the
+  ADC so the Pico can display CV / CC / input-limited.
+
+
+4. SETPOINT: THE SWITCHED CONDUCTANCE DIVIDER
+---------------------------------------------
+
+  Vout = Vref * (1 + Rtop * G),  Vref = 1.207 V (FBOUT),  Rtop = 48.7k
+  Vout is LINEAR in bottom-leg conductance, so binary-weighted parallel
+  resistors give UNIFORM voltage steps. 10 bits = 57 mV over 2-60 V.
+
+      VOUT o---[ Rtop 48.7k 0.1% ]---+---o FBOUT
+                                     |
+                      +--------------+----------+---- ... ----+
+                      |              |          |             |
+                   Rfix 74.1k      R9 2.02k   R8 4.05k   ... R0 1037k
+                   (no switch)       |          |             |
+                                    SW9        SW8           SW0
+                                     |          |             |
+                                     +----------+---- ... ----+---o RTN
+
+    bit  conductance    resistor        bit  conductance   resistor
+     9    493.84 uS      2.02 k          4     15.43 uS     64.80 k
+     8    246.92 uS      4.05 k          3      7.72 uS    129.60 k
+     7    123.46 uS      8.10 k          2      3.86 uS    259.19 k
+     6     61.73 uS     16.20 k          1      1.93 uS    518.39 k
+     5     30.87 uS     32.40 k          0      0.96 uS   1036.77 k
+    fixed  13.49 uS     74.10 k  -> 2.0 V with every switch OPEN
+
+  ** THE FIXED BRANCH SETS THE MINIMUM AND THE SWITCHES ONLY ADD. **
+  Switches open - unpowered, in reset, mid-reflash - is 2 V out, not 60.
+  Wire it the other way round and every one of those states commands full
+  output. This is structural and must not be "simplified" later.
+
+  SW0..SW9 : two ADG714-class octal SPST in series on one SPI chain.
+             ~2.5 Ohm on-resistance: 0.25% error at 60 V, where Rbot is 1k.
+             A CD4051 at ~100 Ohm would cost 10% there.
+             VERIFY the power-up state is all-switches-OPEN.
+  Tolerance: 1% throughout, 0.1% on Rtop and bits 7-9. The 1 M LSB's
+             tolerance is worth less than one step.
+
+
+5. ISOLATED CONTROL - EVERYTHING CROSSES OPTICALLY
+--------------------------------------------------
+
+  Pico side                 | barrier |            THIS BOARD's ground
+  ------------------------- | ------- | ----------------------------------
+  SCK   --[330R]--|>|-------|    |    |-------[10k pull-up]--> ADG714 SCLK
+  MOSI  --[330R]--|>|-------|    |    |-------[10k pull-up]--> ADG714 SDI
+  CS_SW --[330R]--|>|-------|    |    |-------[10k pull-up]--> ADG714 SYNC
+  CS_AD --[330R]--|>|-------|    |    |-------[10k pull-up]--> ADC CS
+  MISO  <---[10k]---|<|-----|    |    |<--[330R]-- ADC DOUT / ADG714 SDO
+  ------------------------- | ------- | ----------------------------------
+
+  FIVE optos. Four out with their LEDs on the Pico side, ONE back with its
+  LED on THIS side. Nothing electrical bridges the gap - these two channels
+  get stacked in series, so a shared ground would defeat the transformers.
+
+  SPI, not I2C: every opto is unidirectional and I2C's SDA is not.
+  Clock at a few kHz. A 10k pull-up and a phototransistor make edges tens of
+  microseconds long; 10 bits then takes single-digit milliseconds, which is
+  invisible to someone turning a knob.
+
+  Switch-state readback is free: the ADG714 chain's SDO returns the PREVIOUS
+  word on the MISO opto already there for the ADC. Compare it with what was
+  sent. On a board that can put 60 V out, a stuck bit is a silently wrong
+  output voltage.
+
+  ADC : 12-bit SPI, 4 channels -> Vout divider, Iout (from INA on Rsen_OUT),
+        Iin (INA on Rsen_IN), and the SRVO_* loop-status pins.
+  INA : high-side, >=80 V common mode (INA293-class). 20 mOhm x gain 50 gives
+        3.0 V full scale. A 26 V part will NOT do - the output is the common
+        mode and it goes to 60.
+
+
+6. LOCAL BIAS - AND WHAT IT MUST NOT BE
+---------------------------------------
+
+  +RAIL (29-44 V) --> small 60 V buck --> 12 V --> EXTVCC
+                                            |
+                                            +---> 5 V LDO --> ADG714, ADC,
+                                                              INA, opto
+                                                              pull-ups
+
+  ** NOT from the control board's 5 V module. ** Feeding this side from the
+  control rail wires the two channels together and undoes the isolation the
+  second transformer was bought for. Each channel powers its own logic from
+  its own rail, which is isolated by construction.
+
+
+7. OUTPUT
+---------
+
+        VOUT o----+--------------------------o + TERMINAL
+                  |
+                 D_rev   across the output, cathode to +, anode to -
+                  |      REVERSE-BIASED in normal use, carries nothing.
+        RTN  o----+--------------------------o - TERMINAL
+                         Only conducts if the other channel drives this one
+                         backwards while it is off, current-limited or
+                         shorted. Rate it for the full output current.
+
+  NOTHING IN SERIES WITH THE OUTPUT. A 0.5 V drop is a quarter of the 2 V
+  floor, and 1.5 W of heat the load never sees. The same argument is why the
+  converter is synchronous.
+
+
+8. WHAT IS DELIBERATELY NOT ON THIS BOARD
+-----------------------------------------
+
+  * No microcontroller. The isolated side holds no firmware - only switches,
+    an ADC and a sense amp, doing what they are told. "Switches open = 2 V"
+    is then structural and cannot be undone by a hung program.
+  * No mains. The transformer primary, its fuse and the inlet live on the
+    back wall behind their own shield.
+  * No CC error amplifier. The LT8705 carries that loop itself.
+  * No fan drive, no display, no 1-Wire. Control board.
