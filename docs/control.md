@@ -334,7 +334,7 @@ does not care what the mains does.
 > arrives** — the enclosure depends on them, and the "on edge in the back bay"
 > conclusion below is computed from the YS-U20S drawing.
 
-#### Fuse the branch — but at 0.5 A, not 3
+#### Fuse the branch — 1 A, not 3
 
 A separate fuse on this branch is right: the C14's fuse is sized for the whole
 box and would never notice a fault in a 156 mA load. The value is the problem.
@@ -350,11 +350,15 @@ short and cook without ever blowing it. A fuse that cannot blow is not there.
 ```
   0.25 A time-delay -> 1.6x rated draw   tight, inrush may nuisance-trip
   0.5  A time-delay -> 3.2x rated draw   sensible
-  1.0  A time-delay -> 6.4x rated draw   sensible
+  1.0  A time-delay -> 6.4x rated draw   sensible  <- chosen
+  3.0  A               19x rated draw    cannot clear a fault in this branch
 ```
 
-**0.5 A time-delay.** Time-delay rather than fast, because the module's input
-capacitor charges through the fuse at switch-on.
+**1 A time-delay.** Time-delay rather than fast, because the module's input
+capacitor charges through the fuse at switch-on. 1 A is the looser end of
+sensible — it will clear a hard short but not a partial failure drawing a few
+hundred milliamps — and it is stocked everywhere in 5 × 20, which 0.5 A often
+is not.
 
 #### All three branches, since the inlet now feeds three loads
 
@@ -362,7 +366,7 @@ capacitor charges through the fuse at switch-on.
 |---|--:|---|
 | toroid A primary, 350 VA | 2.92 A | 4 A time-delay |
 | toroid B primary, 350 VA | 2.92 A | 4 A time-delay |
-| 5 V control module | 0.16 A | **0.5 A time-delay** |
+| 5 V control module | 0.16 A | **1 A time-delay** |
 | **total** | **5.99 A** | 8 A time-delay at the C14 |
 
 The branch values differ by **8:1**, which is exactly why branch fusing earns

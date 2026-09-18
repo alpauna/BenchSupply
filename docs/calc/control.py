@@ -137,6 +137,17 @@ print("""  Three 40 mm fans give 9-15 CFM installed - right for 100 W at a 15 K 
   Fans are 5 V, so there is no 12 V rail in the box. One 120 V -> 5 V module
   runs the Pico, the fans and the opto LEDs.""")
 
+print("\n=== Mains branch fusing ===")
+VAC=120.0; imax=15/0.80/VAC
+print(f"  5 V module draws {imax*1000:.0f} mA max ({15/0.80:.1f} W in at 80% eff)")
+for f in (0.5, 1.0, 3.0):
+    m=f/imax
+    print(f"    {f:>3} A -> {m:>4.1f}x rated"
+          f"  {'CHOSEN' if f==1.0 else 'cannot clear a fault here' if m>10 else ''}")
+print(f"  branches: toroid {350/VAC:.2f} A each (4 A T), module {imax:.2f} A (1 A T)")
+print(f"  total {2*350/VAC+imax:.2f} A -> 8 A T at the C14. Values differ 8:1,")
+print("  which is why one upstream fuse is not enough.")
+
 print("\n=== The 5 V control rail ===")
 loads=[("Pico",0.100),("3 x 5 V 40 mm fans",0.600),("opto LEDs 10 x 5 mA",0.050)]
 tot=sum(i for _,i in loads)
