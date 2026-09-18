@@ -43,8 +43,11 @@ every one of those states commands 60 V into whatever is connected.
 for one monostable period. Without that, a relay that fails to close leaves it
 at 85 W indefinitely.
 
-**Fan 1 is hardwired on.** A box shedding 108 W with no fans because the Pico is
-halted, or because someone is reflashing it, is a fire and not a bug.
+**TS1 sits in parallel with fan 1's drive FET.** All three fans are staged by
+the Pico, and a thermostat closes at 65 °C regardless — so a box shedding 108 W
+with no fans because the Pico is halted, or because someone is reflashing it,
+cannot happen. Hardwiring fan 1 on would also prevent it, and would throw away
+useful control to do so.
 
 ## Where the optocouplers live
 

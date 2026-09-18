@@ -105,7 +105,7 @@ BENCH SUPPLY - MAINS ENTRY, DISTRIBUTION AND SOFT START
   at 85 W indefinitely, and the best you can do is make it unlikely with a
   timer. Here the dangerous state cannot persist by construction.
 
-  Same principle as fan 1 being hardwired and as "switches open = 2 V": the
+  Same principle as TS1 backing up fan 1 and as "switches open = 2 V": the
   failure direction is structural, not a promise.
 
   RLY_MAIN may be the Pico's. Its failure is benign now - the box just does

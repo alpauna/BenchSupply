@@ -389,25 +389,45 @@ The thresholds below belong to the **heatsink** sensor.
 
 CRC failure, a missing sensor, a shorted bus: the firmware treats that as **hot**
 and runs the fans. Not as cold, and not as "hold the last value". Same principle
-as fan 1 being hardwired — the failure direction has to be the safe one.
+as TS1 backing up fan 1 — the failure direction has to be the safe one.
 
 ### Stage on thresholds with hysteresis, not on "still rising"
 
 | | on | off |
 |---|--:|--:|
+| fan 1 | 35 °C | 30 °C |
 | fan 2 | 45 °C | 40 °C |
 | fan 3 | 55 °C | 48 °C |
+| **TS1** | **~65 °C** | **~55 °C** |
 
 A rising-derivative trigger fires on every load step and every lid opening, and
 it is hard to tune because dT/dt is noisy at any sane sample rate. Absolute
 thresholds with a few degrees of backlash will not chatter.
 
-### Fan 1 is not on that list
+### Fan 1 is staged like the others — TS1 is what makes that safe
 
-**Cooling must not depend on firmware.** Hardwire fan 1 to run whenever the box
-is powered and let the Pico stage 2 and 3. A box dissipating 100 W with no fans
-because the Pico is halted — or because someone is reflashing it — is a fire,
-not a bug.
+**Cooling must not depend on firmware.** The way to satisfy that is *not* to
+hardwire fan 1 permanently on, which would throw away useful control for no
+reason. It is a **bimetallic thermostat in parallel with fan 1's drive FET**.
+
+```
+   FAN1 o----+-------[ AO3400 ]------- GND    <- Pico, normal staging
+             |
+             +-------[  TS1   ]------- GND    <- closes at 65 C regardless
+```
+
+In normal operation the Pico stages fan 1 like the others and **TS1 never
+closes** — it sits above fan 3's threshold on purpose. If the Pico is halted,
+hung, or mid-reflash, the heatsink climbs to 65 °C and TS1 runs the fan
+directly, with no software in the path at all.
+
+One part, and it keeps both properties instead of trading one for the other.
+Mount it on the same heatsink as the 1-Wire probe that drives the staging —
+they are watching for the same thing; TS1 just does not need anyone listening.
+
+**It also costs the Pico's last GPIO.** Driving all three fans takes the budget
+to 26 of 26. Anything added after this forces either a shared SPI across both
+channels or one encoder plus a channel-select button.
 
 ### The auxiliary supply: one 5 V module off the mains
 
@@ -658,10 +678,11 @@ path, so switching off spikes it. The 2N7002's 60 V gave some margin; an
 AO3400's 30 V gives less. **A diode across each fan, cathode to +5 V** — a
 1N4148 is ample at these currents.
 
-#### You need two boards, not three
+#### Three boards, and three flyback diodes
 
-Fan 1 is [hardwired on](#fan-1-is-not-on-that-list) and has no FET at all. Only
-fans 2 and 3 are switched.
+All three fans are switched and temperature-staged. Fan 1's
+firmware-independent backstop is [TS1](#fan-1-is-staged-like-the-others--ts1-is-what-makes-that-safe),
+a thermostat in parallel with its FET — not a hardwired supply.
 
 ### Check the fans actually move the air
 

@@ -24,13 +24,16 @@ Pico, the barrier drive, fan staging, sensors, relay sequencing
   SPI1 to channel B: SCK MOSI MISO CS_SW CS_AD     5
   RLY_MAIN drive x2                                2
   NE556 trigger x2 (the RLY_SOFT one-shots)        2
-  fan 2 and fan 3 drive                            2
+  fan 1, fan 2, fan 3 drive                        3
   1-Wire bus (3 sensors)                           1
   display, I2C                                     2
   encoder A: A B push                              3
   encoder B: A B push                              3
   --------------------------------------------------
-  TOTAL                                           25   of 26. ONE SPARE.
+  TOTAL                                           26   of 26. NONE SPARE.
+
+  Driving fan 1 costs the last pin. Anything added after this forces one of
+  the mitigations below.
 
   Two things buy room if it gets tighter:
     - share one SPI across both channels, picking with CS. Costs 10 mA of
@@ -91,31 +94,50 @@ Pico, the barrier drive, fan staging, sensors, relay sequencing
    will simply not work.
 
 
-4. FANS
--------
+4. FANS - ALL THREE STAGED, WITH A BACKSTOP THAT IS NOT FIRMWARE
+----------------------------------------------------------------
 
-   FAN1 o----+------------------------------o +5V     ALWAYS ON. NO SWITCH.
+   FAN1 o----+-------[ AO3400 on a 2N7002 board ]------- GND
+             |              gate <- GP, 220R + 10k pulldown
+            D1             |
+             |             +--------[ TS1 ]------------- GND
+             |                    60-70 C thermostat
+             |                    normally open
              |
-            D1 flyback, cathode to +5V
-
-   FAN2 o----+----[ AO3400 on a 2N7002 board ]---- GND
-             |            gate <- GP, 220R + 10k pulldown
+   FAN2 o----+-------[ AO3400 on a 2N7002 board ]------- GND
             D2
-
-   FAN3 o----+----[ AO3400 on a 2N7002 board ]---- GND
-             |
+   FAN3 o----+-------[ AO3400 on a 2N7002 board ]------- GND
             D3
 
-   ** FAN 1 IS HARDWIRED. ** A box shedding 108 W with no fans because the
-   Pico is halted - or because someone is reflashing it - is a fire and not
-   a bug. Baseline cooling has no software in the path.
+   All three are Pico-staged on temperature:
+
+     fan 1   on 35 C   off 30 C
+     fan 2   on 45 C   off 40 C
+     fan 3   on 55 C   off 48 C
+     TS1     closes ~65 C, opens ~55 C   HARDWARE. No firmware in the path.
+
+   ** TS1 IS WHY FAN 1 CAN BE SOFTWARE-CONTROLLED. **
+   A bimetallic thermostat in PARALLEL with fan 1's drive FET. In normal
+   operation the Pico stages fan 1 like the others and TS1 never closes -
+   it sits above fan 3's threshold on purpose. If the Pico is halted, hung
+   or mid-reflash, the heatsink climbs to 65 C and TS1 runs the fan
+   directly.
+
+   That keeps the staging as specified AND satisfies "cooling must not
+   depend on firmware". One part, and the dangerous case has no software
+   in it at all. Hardwiring fan 1 permanently on would also satisfy the
+   second requirement - and throw away the first for no reason.
 
    AO3400, not the 2N7002 the boards ship with: a 200 mA fan is 1.7x a
    2N7002's 115 mA rating, and 2-3x that at startup. Same SOT-23 pinout
-   (G-S-D), same 220R and 10k, a transistor swap rather than a redesign.
+   (G-S-D), same 220R and 10k - a transistor swap, not a redesign.
 
    Flyback diode on EVERY fan. The driver board does not carry one, and it
    matters more with an AO3400's 30 V than the 2N7002's 60.
+
+   Mount TS1 on the same heatsink as the 1-Wire probe that drives the
+   staging. They are watching for the same thing; TS1 just does not need
+   anyone to be listening.
 
 
 5. RELAY SEQUENCING - TWO LINES PER CHANNEL, NOT THREE
@@ -163,6 +185,7 @@ Pico, the barrier drive, fan staging, sensors, relay sequencing
    way. The intake probe goes in the fan stream and away from any heatsink
    or it reads its own self-heating.
 
+     fan 1   on 35 C   off 30 C
      fan 2   on 45 C   off 40 C
      fan 3   on 55 C   off 48 C
 
