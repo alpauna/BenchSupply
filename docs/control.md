@@ -562,6 +562,58 @@ terminal block or that block lives beside it under its own cover.
 Worth settling before the toroid layout is drawn, because it changes what the
 back bay has to contain.
 
+### Driving the fans: the 2N7002 boards, with a bigger transistor
+
+The [2N7002 driver boards](../../TritonECU/hardware/2N7002%20Driver/) are the
+right *shape* for this — but they were specified for 14 mA into a DM542
+optocoupler, and a fan is fifteen times that.
+
+```
+ fan current   vs 115 mA rating     Vds   P in FET     verdict
+       80 mA              0.7x   0.40V       32mW      ok
+      120 mA              1.0x   0.60V       72mW      OVER RATING
+      200 mA              1.7x   1.00V      200mW      OVER RATING
+      250 mA              2.2x   1.25V      312mW      OVER RATING
+```
+
+A SOT-23 sheds roughly 200–350 mW at 25 °C and far less in a box already
+shedding 100 W. Starting current is 2–3× running, so a 200 mA fan asks for
+**400–600 mA at switch-on**. And that table is optimistic: it assumes 5 Ω, which
+is the 2N7002 well enhanced — a **3.3 V** Pico GPIO does not enhance it that
+far, so the real drop and dissipation are worse.
+
+#### Keep the boards, swap the FET
+
+The board carries the parts that actually matter: the 220 Ω gate resistor and,
+more importantly, the **10 kΩ gate pulldown** that holds the FET off while the
+Pico's GPIOs are high-impedance during boot. Both are right for any N-FET.
+
+```
+  2N7002  SOT-23: pin1 Gate, pin2 Source, pin3 Drain
+  AO3400A SOT-23: pin1 Gate, pin2 Source, pin3 Drain   -- same pinout
+```
+
+| | Rds(on) @ Vgs 4.5 | at 250 mA | rated |
+|---|--:|--:|--:|
+| 2N7002 | 5 Ω | 1250 mV, 312 mW | 0.12 A |
+| **AO3400A** | **28 mΩ** | **7 mV, 1.8 mW** | **5.7 A** |
+
+A true logic-level part with Vgs(th) under ~1.2 V, so a 3.3 V gate fully turns
+it on. Same footprint, same pinout, same passives — a transistor swap, not a
+redesign.
+
+#### Add a flyback diode, which the board does not have
+
+A fan is an inductive load and the board leaves the drain open with no freewheel
+path, so switching off spikes it. The 2N7002's 60 V gave some margin; an
+AO3400's 30 V gives less. **A diode across each fan, cathode to +5 V** — a
+1N4148 is ample at these currents.
+
+#### You need two boards, not three
+
+Fan 1 is [hardwired on](#fan-1-is-not-on-that-list) and has no FET at all. Only
+fans 2 and 3 are switched.
+
 ### Check the fans actually move the air
 
 ```
