@@ -104,10 +104,10 @@ avail = dc*ETA_CONV
 print(f"  absolute ceiling: {dc:.0f} W DC x {ETA_CONV} = {avail:.0f} W out")
 print(f"  specified at {P_MAX:.0f} W, which leaves {(VA*CAP_INPUT - P_MAX/ETA_CONV):.0f} W of DC headroom\n")
 print(f"{'Vout':>7} {'I':>8} {'power':>8}")
-for v in (12, 24, 40, 50, 55, 60):
+for v in (2, 5, 10, 12, 15, 20, 24, 30, 36, 40, 45, 48, 50, 52, 55, 58, 60):
     i = min(I_MAX, P_MAX/v)
     print(f"{v:>5} V {i:>6.2f} A {v*i:>6.0f} W"
-          f"   {'full 3 A' if i >= I_MAX else 'power limited'}")
+          f"   {'current limited' if i >= I_MAX else 'POWER limited'}")
 print(f"  corner point: {I_MAX} A up to {P_MAX/I_MAX:.0f} V, tapering to"
       f" {P_MAX/V_MAX:.1f} A at {V_MAX:.0f} V")
 print("""
@@ -119,3 +119,18 @@ print("""
   power - 6.02 A - not by the current cap. In buck mode the inductor carries
   the OUTPUT current, so 3 A there is well under it. One design covers the
   whole envelope.""")
+
+rule("8. Stacked and paralleled - what the isolation buys")
+print(f"  series   : to {2*V_MAX:.0f} V, {I_MAX} A below {2*P_MAX/I_MAX:.0f} V,"
+      f" {2*P_MAX/(2*V_MAX):.1f} A at {2*V_MAX:.0f} V   ({2*P_MAX:.0f} W total)")
+print(f"  +/- split: +/-{V_MAX:.0f} V about a common centre")
+print(f"  parallel : to {2*I_MAX:.0f} A below {P_MAX/I_MAX:.0f} V"
+      f"                    ({2*P_MAX:.0f} W total)")
+print("""
+  Series wants a reverse-protection diode across each output: if one channel
+  is off, current-limited or shorted while the other drives, the live one
+  pushes current backwards through the dead one.
+
+  Parallel is awkward - two regulated voltage sources fight, and whichever
+  reads fractionally higher takes the whole load until it hits its limit. Run
+  one in CC and let the other set the voltage, or do not parallel them.""")

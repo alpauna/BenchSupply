@@ -76,18 +76,57 @@ both channels             = 300 W out
 
 ### It is power limited, not current limited
 
-```
-   Vout        I    power
-   12 V   3.00 A     36 W   full 3 A
-   40 V   3.00 A    120 W   full 3 A
-   50 V   3.00 A    150 W   full 3 A
-   55 V   2.73 A    150 W   power limited
-   60 V   2.50 A    150 W   power limited
-```
+**3 A up to 50 V, tapering to 2.5 A at 60 V**, 150 W per channel. The
+transformer does not care about amps, it cares about watts — 3 A at 12 V is 36 W
+and nothing to it. A flat 2.5 A derate would have thrown the bottom of the range
+away for no reason.
 
-**3 A up to 50 V, tapering to 2.5 A at 60 V.** The transformer does not care
-about amps, it cares about watts — 3 A at 12 V is 36 W and nothing to it. A flat
-2.5 A derate would have thrown the bottom of the range away for no reason.
+### The envelope, per channel
+
+| V | I max | P | limited by |
+|--:|--:|--:|---|
+| 2 V | 3.00 A | 6 W | current |
+| 5 V | 3.00 A | 15 W | current |
+| 10 V | 3.00 A | 30 W | current |
+| 12 V | 3.00 A | 36 W | current |
+| 15 V | 3.00 A | 45 W | current |
+| 20 V | 3.00 A | 60 W | current |
+| 24 V | 3.00 A | 72 W | current |
+| 30 V | 3.00 A | 90 W | current |
+| 36 V | 3.00 A | 108 W | current |
+| 40 V | 3.00 A | 120 W | current |
+| 45 V | 3.00 A | 135 W | current |
+| 48 V | 3.00 A | 144 W | current |
+| **50 V** | **3.00 A** | **150 W** | **the corner** |
+| 52 V | 2.88 A | 150 W | **power** |
+| 55 V | 2.73 A | 150 W | **power** |
+| 58 V | 2.59 A | 150 W | **power** |
+| 60 V | 2.50 A | 150 W | **power** |
+
+**Both channels can do this at once**, because each has its own transformer.
+That is what the second ST-1228 buys, beyond the isolation.
+
+### Stacked and paralleled
+
+The channels are isolated, so they combine — which was the point:
+
+| configuration | range | notes |
+|---|---|---|
+| **series** | to **120 V**, 3 A below 100 V, 2.5 A at 120 V | 300 W total |
+| **± split** | **±60 V** about a common centre | the original requirement |
+| **parallel** | to **6 A** below 50 V | 300 W total, but see below |
+
+**Series needs a reverse-protection diode across each output.** If one channel
+is off, current-limited or shorted while the other is driving, the live one
+pushes current backwards through the dead one. A diode across each output —
+cathode to the positive terminal, rated for the full current — gives that
+current somewhere to go. Standard practice for stacked supplies and easy to
+forget.
+
+**Parallel is the awkward one.** Two independently regulated voltage sources
+fight: whichever reads fractionally higher takes the whole load until it hits
+its current limit. Run one channel in CC at the current you want it to
+contribute and let the other regulate the voltage, or do not parallel them.
 
 The inductor is sized by the **worst case, not the current cap**: boost at low
 line and full power is 6.02 A, and in buck mode the inductor carries the
