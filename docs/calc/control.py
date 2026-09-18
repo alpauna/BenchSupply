@@ -72,6 +72,27 @@ print("""
   ADC on the isolated side and its data coming back through one more opto -
   share the clock with the shift register and it costs one part per channel.""")
 
+# ---- what NOT to use --------------------------------------------------------
+print("\n=== Why not a linear digipot as the bottom leg ===")
+RPOT, TAPS = 50e3, 256
+step_r = RPOT/(TAPS-1)
+vout = lambda rb: VREF*(1+RTOP/rb)
+print(f"  {RPOT/1e3:.0f}k, {TAPS} taps -> {step_r:.0f} ohm per tap")
+for rb in (1.0e3, 5.0e3, 49.33e3):
+    print(f"    at {vout(rb):>5.1f} V  one tap moves it"
+          f" {abs(vout(rb)-vout(rb+step_r)):>7.3f} V")
+lo = abs(vout(49.33e3)-vout(49.33e3+step_r)); hi = abs(vout(1e3)-vout(1e3+step_r))
+print(f"  step spread {hi/lo:.0f}:1 - Rbot is linear in tap, Vout goes as 1/Rbot.")
+print("  The binary-weighted array is uniform at the same bit count, and its")
+print("  switches-open state is the safe one for free. A DAC fixes linearity")
+print("  but its reset output is an END of the range, not the safe end.")
+
+print("\n=== Serial switches vs a shift register + discrete switches ===")
+for ron, part in ((2.5, "ADG714-class octal SPST, SPI"), (100.0, "CD4051-class mux")):
+    print(f"  Ron {ron:>5.1f} ohm ({part})"
+          f" -> {ron*Gmax*100:5.2f}% error at {VMAX} V")
+print("  The serial switch IS the serial-to-parallel converter. One part.")
+
 # ---- fans ------------------------------------------------------------------
 print("\n=== Fan staging ===")
 rho, cp = 1.2, 1005

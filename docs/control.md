@@ -78,6 +78,32 @@ Keep the divider and its switches **physically at the controller**. The FB node
 is the most noise-sensitive point in the converter; running it across the box to
 a mux invites instability.
 
+## Not a digipot or a DAC, and the reason is not cost
+
+The obvious simplification is a serial digital potentiometer as the bottom leg.
+It fails on resolution. `Rbot` is linear in tap, but `Vout` goes as `1/Rbot`:
+
+```
+      near      Rbot     Vout  next tap      step
+    60.0V    1.00k   60.00V    50.30V    9.705V
+    12.6V    5.00k   12.64V    12.19V    0.447V
+     2.0V   49.33k    2.00V     2.00V    0.005V
+```
+
+A 50k/256-tap part gives **5 mV steps at the bottom and 9.7 V steps at the top**
+— a 2000:1 spread, and unusable where you most want resolution. The
+binary-weighted array gives 0.227 V *everywhere* at the same 8 bits, because
+conductances add and Vout is linear in conductance.
+
+A DAC injecting into the FB node fixes the linearity but loses the fail-safe:
+its zero/reset output is one *end* of the range, and the polarity that would
+make 0 V mean 2 V out is the one you cannot have — current sourced into FB
+always *lowers* Vout. Getting a safe default back needs an inverting stage or a
+watchdog on top of it.
+
+The switched array gets uniform steps and a safe default from the same
+property, for the price of some resistors.
+
 ## Wire it so a dead Pico gives 2 V, not 60
 
 **Switches open must mean minimum output.** Size the *fixed* branch for 2 V and
@@ -105,9 +131,33 @@ human turns a knob, so their speed penalty costs nothing.
                      -> 8 optos, about 24 parts - a 2.5x saving
 ```
 
-A **shift register on the isolated side** (powered from that channel's own rail)
-takes the serial stream and drives the switch array. Only three lines cross per
-channel.
+A **serial-to-parallel device on the isolated side** (powered from that
+channel's own rail) takes the clocked stream and drives the switch array. Only
+three lines cross per channel:
+
+```
+  Pico --SPI--> [opto] [opto] [opto] --> serial-to-parallel --> switch array
+                 CLK   DATA   LATCH          (isolated side)        |
+                                                                 divider
+                                                              bottom leg
+```
+
+### Use serial switches, not a shift register plus discrete switches
+
+An **ADG714-class octal SPST** is SPI-controlled analog switches in one package
+— it *is* the serial-to-parallel converter and the switch array, and its Ron is
+about 2.5 Ω instead of a CD4051's ~100:
+
+```
+  Ron   2.5 ohm ->  0.25% error at 60 V (where Rbot is 1k)
+  Ron 100.0 ohm -> 10.00% error at 60 V
+```
+
+Two daisy-chained give 16 bits of divider off the same three wires. Against
+`74HC595` + discrete switches it is fewer parts, far lower Ron and the same
+barrier cost. **Verify the power-up state is all-switches-open** — that is the
+fail-safe direction, and it is the one thing worth reading the datasheet for
+rather than assuming.
 
 Sizing, for a garden-variety transistor-output opto:
 
@@ -123,9 +173,10 @@ not at SPI speeds** — a 10k pull-up and a phototransistor make edges tens of
 microseconds long. Ten bits then takes single-digit milliseconds, which nobody
 turning a knob will notice.
 
-**Power-on state:** an RC reset on the shift register's clear pin puts every
-output at 0 before the Pico says anything — which is 2 V out. If the isolated
-side browns out, the register clears and the output *falls*. Both safe
+**Power-on state:** the switches must come up open, which is 2 V out. With an
+`ADG714`-class part that should be its reset state — confirm it. With a
+`74HC595` it is an RC reset on the clear pin. Either way, if the isolated side
+browns out the outputs drop and the channel output *falls*. Both safe
 directions.
 
 **Readback crosses the same barrier.** Displaying V and I means an ADC on the
@@ -177,6 +228,6 @@ small auxiliary mains module: 12 V for the fans, 5 V derived for the Pico.
   the Pico has PWM to spare.
 - Resolution: 10 bits gives 57 mV steps. Fine for a bench supply, coarse for
   anything calibrated.
-- Whether a watchdog should clear the shift register if the Pico stops talking.
+- Whether a watchdog should clear the switch array if the Pico stops talking.
   The register currently holds its last setpoint, which fails *level* rather
   than *safe* — acceptable, since it cannot fail upward.
