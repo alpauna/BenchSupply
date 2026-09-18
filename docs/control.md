@@ -426,8 +426,25 @@ Mount it on the same heatsink as the 1-Wire probe that drives the staging —
 they are watching for the same thing; TS1 just does not need anyone listening.
 
 **It also costs the Pico's last GPIO.** Driving all three fans takes the budget
-to 26 of 26. Anything added after this forces either a shared SPI across both
-channels or one encoder plus a channel-select button.
+to 26 of 26.
+
+The expansion route is an **MCP23017 on the display's I²C bus**, which costs
+**zero additional pins** — the bus is already there — and is the same part
+TritonECU runs at 0x20. Move the slow outputs onto it:
+
+```
+  RLY_MAIN x2  2   NE556 triggers x2  2   fan 1/2/3  3   =  7 freed
+  GPIO      26 used -> 19 used, 7 spare
+  expander  7 of 16 used
+```
+
+**Not the encoders.** Quadrature needs prompt reads, and an expander behind a
+bus turns a knob into a source of missed counts.
+
+Its failure mode is already covered: a dead expander loses the relays (the box
+does not come on — benign) and the fans (TS1 closes at 65 °C regardless). The
+thermostat that made fan 1 safe to software-control is the same thing that makes
+it safe to put behind an expander.
 
 ### The auxiliary supply: one 5 V module off the mains
 

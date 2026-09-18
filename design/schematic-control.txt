@@ -32,8 +32,49 @@ Pico, the barrier drive, fan staging, sensors, relay sequencing
   --------------------------------------------------
   TOTAL                                           26   of 26. NONE SPARE.
 
-  Driving fan 1 costs the last pin. Anything added after this forces one of
-  the mitigations below.
+  Driving fan 1 costs the last pin.
+
+
+1a. THE EXPANSION ROUTE - MCP23017, AND IT COSTS NO PINS
+--------------------------------------------------------
+
+  The display is already I2C and already costs 2 pins. An MCP23017 at a
+  different address on the SAME BUS costs ZERO additional GPIOs and brings
+  16 more I/O. It is also the part already used in TritonECU at 0x20.
+
+  Move the slow set-and-forget outputs onto it:
+
+      RLY_MAIN x2               2
+      NE556 triggers x2         2
+      fan 1 / 2 / 3             3
+      --------------------------
+                                7   freed
+
+      GPIO      26 used -> 19 used, 7 spare
+      expander  7 of 16 used, 9 left over
+
+  ** DO NOT PUT THE ENCODERS ON IT. **
+  Quadrature needs prompt reads. An expander behind a bus - or behind an
+  interrupt you have to service - turns a knob into a source of missed
+  counts. Encoders stay on real pins. Slow outputs are what an expander is
+  for; a rotating shaft is not.
+
+  An SPI expander (MCP23S17) also works and can share SPI0's SCK/MOSI/MISO
+  with the opto drive - the GPIO drives the LED and the expander input, and
+  the expander tristates MISO when deselected. But it costs one pin for CS
+  AND inherits the bus speed, which is a few kHz because of the optos.
+  The I2C route is strictly better here.
+
+  Failure mode, checked rather than assumed. A dead expander or a stuck bus
+  loses control of both relays and fans:
+
+      relays -> the box does not come on. Benign, same as a dead Pico.
+      fans   -> TS1 closes at 65 C and runs fan 1 regardless.
+
+  The thermostat that made fan 1 safe to software-control is the same thing
+  that makes it safe to put behind an expander. That was not why it was
+  added, but it is a real consequence - the expander adds a dependency, not
+  a hazard.
 
   Two things buy room if it gets tighter:
     - share one SPI across both channels, picking with CS. Costs 10 mA of
