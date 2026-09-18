@@ -141,34 +141,78 @@ core OD x ID x H         mu      AL  mu left      N   fits one layer
 24.5 x 15.8 x 12.7       60    66nH     68%     28     no
 24.5 x 15.8 x 12.7      125   137nH     64%     20    yes
 33 x 20 x 11             60    69nH     79%     25    yes
-41 x 24 x 15             60    96nH     87%     20    yes
 ```
 
 The unbiased calculation says 23 turns of 60µ at 25 mm. The biased one says
 **28, which does not fit in one layer.** Same core, same target, and the naive
 number would have been wound and then found wanting.
 
-### The core to buy
+Those AL figures are worked out from the outside dimensions, which is fine for
+choosing a size but not for winding one — see the 20 % Ae error below. The core
+that was actually chosen is done properly, off the catalogue.
+
+### The core: Magnetics Kool Mu toroid, core data 0254, 60µ
 
 | | |
 |---|---|
-| Material | Sendust — Magnetics **Kool Mu**, or a Changsung/Poco equivalent |
+| Core | **Kool Mu toroid 0254** — 40.77 OD × 23.32 ID × 15.37 mm |
+| Catalogue | AL **81 nH/T²** at 60µ, Ae **107 mm²**, le 98.4 mm, Ve 10 600 mm³ |
 | Permeability | **60µ** |
-| Size | **~40 × 24 × 15 mm** toroid |
-| AL | **90–100 nH/N²** |
-| Turns | **20** for 34.6 µH at peak — wind 21 and measure |
-| Second choice | Micrometals **-52** (green/blue) at the same size |
+| Turns | **22** for 34.6 µH at 8.31 A peak — wind 23 and measure |
+| Wire | **3 × AWG18** twisted, grade 2 heavy build, Class 180 (H) |
 
-Not the smaller core that also fits. At 125µ the inductance sits at **64 % of
-initial** at full current, so it swings nearly 2:1 between no load and 3 A. In a
-fixed-output converter that is a design detail; in a **bench** supply every
-current is a normal operating point, so the swing shows up as ripple and loop
-behaviour that change as the user turns the knob. The 40 mm 60µ core holds
-**87 %** and sidesteps it, and its bigger window leaves room for a fatter bundle
-if the thermals ask for one.
+**Use the catalogue's Ae, not the one you can work out from the outside.**
+Cross-section from the dimensions gives 134 mm²; the catalogue says **107** —
+20 % less, because the rounded edges that stop the core cutting the wire take
+real iron away. That error put AL at 100 nH instead of 81 and would have had
+this wound at 20 turns instead of 22.
 
-No part number here on purpose — Magnetics' 77xxx codes are easy to misremember
-and a wrong digit costs an order. Match on material, µ, AL and dimensions.
+```
+  mu     AL    N       H  mu left      dB  bundle max      Cu    P_cu    Emax
+  40    54n   27  28.9Oe      87%  25.8mT      2.42mm   1.43m   0.52W   105mJ
+  60    81n   22  23.8Oe      85%  31.3mT      2.87mm   1.18m   0.43W    70mJ
+  75   101n   20  21.5Oe      84%  34.7mT      3.14mm   1.06m   0.39W    56mJ
+  90   121n   19  19.8Oe      82%  37.6mT      3.36mm   0.98m   0.36W    47mJ
+ 125   168n   16  17.1Oe      80%  43.6mT      3.81mm   0.85m   0.31W    34mJ
+```
+
+**What did not decide it: DC bias.** Every permeability lands at 80–85 %,
+because higher µ needs fewer turns, which lowers H, which offsets the steeper
+roll-off curve. On a smaller core that trade runs the other way and low µ wins
+on stability — here it does not separate them.
+
+**What decides it is ΔB.** Core loss scales roughly as ΔB^2.1, and Kool Mu's
+loss coefficient rises with permeability as well, so the 0.12 W of copper that
+125µ saves is paid back several times over in the core. Lower µ, lower ΔB, less
+total loss. Check the vendor's loss curves for the magnitude; the direction is
+not in doubt.
+
+Energy capacity at 60µ is **70 mJ against 1.19 mJ needed** — 59× — so
+saturation is nowhere near the binding constraint. The binding constraint is
+loss.
+
+### The wire
+
+```
+winding         Cu mm2   bundle      DCR    P_dc    P_ac      J   fits
+10 x AWG25       1.62   1.79mm   12.1mR   0.63W     5mW   4.5    yes
+5 x AWG20        2.59   2.26mm    7.7mR   0.40W     5mW   2.8    yes
+3 x AWG18        2.47   2.21mm    8.1mR   0.42W     6mW   2.9    yes
+1 x AWG14        2.08   2.03mm    9.5mR   0.50W    11mW   3.5    yes
+```
+
+22 turns leaves room for a bundle up to **2.91 mm** in one layer, which is the
+payoff for the bigger core — the drawer core's 15.8 mm hole allowed 1.79 mm.
+That headroom is what drops the current density from 4.5 to 2.9 A/mm² and takes
+a third off the copper loss for nothing.
+
+**P_ac is milliwatts in every row, including solid AWG14.** The ripple is
+0.63 A RMS against 7.23 A of DC — the AC is 9 % of the current, so skin effect
+is not what sizes this wire. Strand it because 2.5 mm² of solid copper will not
+bend round that hole twenty-two times. Three strands is the fewest that still
+handles easily; twist them loosely and treat them as one wire. Cut ~1.2 m per
+strand — 22 turns of a 52 mm mean turn is 1.18 m, plus tails and the slack for
+the turn you may remove.
 
 ### The cores already in the drawer do not work
 
@@ -185,13 +229,7 @@ Worth writing down so it is not re-litigated:
 will want a **common-mode choke**, and an ungapped high-µ ring is exactly right
 for that job — no net DC flux, so none of the above applies.
 
-### Winding
-
-**Multi-strand, but not for the usual reason.** The ripple is 0.63 A RMS against
-7.23 A DC — **AC is 9 % of the total**, so skin and proximity effects act on
-almost nothing and hand-wound litz would be wasted effort. Use ~10 strands of
-AWG25 because 1.6 mm² of solid wire will not bend round the hole. That is the
-reason that actually matters, and it gives ~0.6 W of copper loss.
+### Securing it — not with rigid epoxy
 
 **Do not pot it in rigid epoxy.** The strongest reason has nothing to do with
 epoxy: hand-wound inductance never lands first time, and with the bias roll-off
