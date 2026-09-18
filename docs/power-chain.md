@@ -14,6 +14,7 @@ python3 docs/calc/inductor.py        # core geometry, winding, losses
 python3 docs/calc/core_choice.py     # which core to buy, solved under DC bias
 python3 docs/calc/floor.py           # floor thickness under the transformers
 python3 docs/calc/control.py         # setpoint divider, opto barrier, fans
+python3 docs/calc/fets.py            # the four switches and their heatsinking
 ```
 
 Control electronics and cooling are in [`control.md`](control.md).
@@ -286,7 +287,7 @@ else in this design protects the transformer that directly.
 ### And the output current loop removes a part
 
 CC mode is built in, so the external error amplifier diode-OR'd into the
-feedback node — specified in [`control.md`](control.md#current-limit-is-analog-too)
+feedback node — specified in [`control.md`](control.md#current-limit-is-analog-too--and-the-lt8705-already-has-it)
 — is no longer needed. The Pico sets the CC threshold; the chip enforces it.
 
 ### It also moves the setpoint divider
@@ -303,6 +304,94 @@ unchosen:
 Still **linear in conductance**, so binary-weighted switched resistors still
 give uniform steps — 10 bits is 57 mV as before. And the part's 1.3 V minimum
 output clears our 2 V floor.
+
+## The four switches
+
+Sized from the operating points, in [`calc/fets.py`](calc/fets.py). Two results
+are not obvious, and both push against the instinct to buy the lowest Rds(on)
+available.
+
+### Specification
+
+| | |
+|---|---|
+| Rating | **100 V** — one part number for all four |
+| Rds(on) | **20–30 mΩ** |
+| Gate charge | **≤ 50 nC** — this is the binding parameter |
+| Package | TO-220 on a shared heatsink, or D2PAK with good copper |
+
+Candidates in that window: `STD26NF10` (100 V, 33 mΩ, DPAK, low-Qg STripFET),
+`STP40NF10L` (designed for minimised gate charge), or an SGT-trench part such as
+MCC's `MCP2D5N10Y`. **Confirm Qg from the datasheet** before committing — it is
+the number that decides this and the one least reliably quoted.
+
+### Switch A carries the most current and does no switching
+
+```
+  boost mode, D = 0.512
+    A (buck HS)  ON CONTINUOUSLY    6.02 A  - no switching at all
+    C (boost LS) conducts D         4.31 A rms
+    D (boost HS) conducts 1-D       4.21 A rms
+```
+
+In boost mode the buck-side high side is simply held on, so it carries the full
+inductor current and dissipates pure I²R. C and D carry less and take all the
+switching loss. They are not interchangeable duties, even though one part number
+covers all four positions.
+
+### At 60 V, switching loss beats conduction loss
+
+```
+    Rds   A conducts        t_sw   C+D switching
+   10m        0.36W         15 ns          1.08W
+   25m        0.91W         20 ns          1.44W
+   50m        1.81W         30 ns          2.17W
+                            40 ns          2.89W
+```
+
+Switching energy scales with switching **time**, not with Rds(on) — and gate
+charge is what sets the time. **A 10 mΩ part carrying 150 nC loses to a 25 mΩ
+part carrying 40 nC.** Hence 20–30 mΩ and low Qg, rather than the lowest
+resistance on the shelf.
+
+### Gate charge is a ceiling, not a preference
+
+```
+  Qg  30 nC x 4 FETs at 200 kHz ->  24.0 mA and 0.15 W from INTVCC   ok
+  Qg  50 nC x 4 FETs at 200 kHz ->  40.0 mA and 0.25 W from INTVCC   ok
+  Qg 100 nC x 4 FETs at 200 kHz ->  80.0 mA and 0.51 W               check
+  Qg 150 nC x 4 FETs at 200 kHz -> 120.0 mA and 0.76 W               check
+```
+
+Four FETs at 200 kHz is a real load on a controller's internal regulator. The
+LT8705 has an **`EXTVCC` pin** — supply the gate drive externally and the
+internal regulator stops being the constraint. Worth planning for rather than
+discovering.
+
+### Heatsinking, and the sensor that goes with it
+
+```
+  t_sw 15 ns:  A 0.91 W   C 1.01 W   D 0.98 W   B ~0   total 2.90 W/channel
+  t_sw 30 ns:  A 0.91 W   C 1.55 W   D 1.53 W   B ~0   total 3.98 W/channel
+```
+
+About **3–4 W per channel** across four devices. Against an internal ambient
+near 45 °C and Tj max 150 °C:
+
+| package / mounting | θ | rise at 1.5 W | Tj |
+|---|--:|--:|--:|
+| DPAK, 1 in² copper | 40 °C/W | 60 °C | 105 °C |
+| D2PAK, good copper | 25 °C/W | 38 °C | 82 °C |
+| TO-220, clip heatsink | 20 °C/W | 30 °C | 75 °C |
+| **TO-220, shared heatsink** | 8 °C/W | 12 °C | 57 °C |
+
+A shared TO-220 heatsink is the easy answer for a hand build — and it is the
+heatsink the [1-Wire probe](control.md#temperature-sensing-1-wire-and-isolated-by-the-packaging)
+clamps to, which is why that sensor leads everything else in the box.
+
+**All four tabs sit at different potentials**, so each needs its own insulator
+on a shared sink. That is precisely why the sink floats at a channel potential,
+and why the temperature probe has to be electrically isolated.
 
 ## The inductor
 
@@ -497,7 +586,7 @@ the box forward.**
   secondaries? Two toroids give matched channels and are already half-bought;
   one larger lump is likely cheaper per VA but must not be centre-tapped.
 - Soft start: NTC inrush limiter, or a resistor bypassed by a relay.
-- FET selection for the four switches, and the heatsinking that follows.
+- Confirm Qg on the chosen FET, and whether `EXTVCC` is fed externally.
 - Toroid or a gapped ferrite E-core on a bobbin? The toroid is specified above
   and has the closed flux path, which two converters and a mains filter will
   appreciate. But a bobbin is far easier to hand-wind — you wind it off the
