@@ -51,7 +51,16 @@ lid_t    = 5;
    split between the 4 mm gap under the supply and the space over it. */
 clr_fan  = 10;   // plenum, fan end
 clr_grid =  3;   // exhaust end
-clr_side =  3;   // the wall the supply sits against
+/* The BACK long wall. It used to be 3 mm - the wall the supply was simply
+   pressed against, and the only wall in the box with nothing in it. The mains
+   inlet has moved onto it, so it now has to hold the inlet's 24 mm of flange
+   and terminals plus the shield over them: 31.5 mm, and 34 leaves 2.5 mm to
+   the supply.
+
+   It is cheaper here than it was at END B. There the shield's 44 mm WIDTH had
+   to fit across the bay; on a long wall the width runs along the wall, which
+   is free, so only the depth costs anything. 50 at END B, 34 here. */
+bay_back = 34;
 
 /* The wiring bay. It used to be 39, set by the IEC module's rear flange on the
    long side. The plug has since moved to END B, and what sets the width now is
@@ -86,7 +95,7 @@ lid_cbore_h = 3.2;
    Derived box
    --------------------------------------------------------------------------- */
 in_l  = clr_fan + psu_l + clr_grid;
-in_w  = clr_side + psu_w + bay_w;
+in_w  = bay_back + psu_w + bay_w;
 in_h  = standoff_h + psu_h + head + rim_taper + boss_d;
 
 out_l = in_l + 2*wall;   // 285
@@ -95,7 +104,7 @@ out_h = floor_t + in_h;  // 101
 
 /* Supply's own corner, in box coordinates. */
 psu_x0 = wall + clr_fan;
-psu_y0 = wall + clr_side;
+psu_y0 = wall + bay_back;
 psu_z0 = floor_t + standoff_h;
 psu_top = psu_z0 + psu_h;
 
@@ -134,37 +143,35 @@ grid_sq    =  6;   // side. Across the corners that is 8.49, leaving 1.5 of rib.
 grid_inset =  8;   // keep the grid inside the supply's shadow
 
 /* ---------------------------------------------------------------------------
-   IEC C14 inlet / switch / fuse module — END B (x = out_l), beside the grid
+   IEC C14 inlet / switch / fuse module — BACK WALL (y = 0)
    ---------------------------------------------------------------------------
-   Moved off the long side. On END B there is only ONE place it can go: the
-   bay's corner. Everywhere else on that wall the supply is 3 mm behind it, and
-   19 mm of flange plus 12 of terminals cannot live in 3 mm. The grid occupies
-   the supply's shadow, so the two do not compete — the inlet sits beside it.
+   Moved again, and this is where it belongs: the back long wall is the one
+   surface with nothing else on it, so the mains gets a wall to itself and the
+   front wall is all low voltage - the DC-DC's screen, its knob, the outputs.
+   Cord out the back, controls at the front.
 
-   And it sits LOW, which is the other half of the request: the shield that
-   covers its terminals stands on the enclosure floor and uses that floor as the
-   fourth side of its wire slot. That only works if the terminals are near it.
+   That wall was blank because it had no depth; bay_back is what buys it. END B
+   goes back to being nothing but exhaust grid, which is better for the air.
 
-   Still mounted with its 58 mm axis VERTICAL, so the rocker is at the top and
-   the fuse drawer pulls out below it. The two M3 ears straddle the cutout on
-   the SHORT axis at 40 mm centres — wider than the 29 mm cutout they flank, and
-   now wider than the bay, which is why they land in the wall either side of it
-   rather than in the bay itself. */
+   Still 58 mm axis VERTICAL, so the rocker is at the top and the fuse drawer
+   pulls out below it. Low, because the shield stands on the floor and uses the
+   floor as the fourth side of its wire slot. */
 plug_cut_l     = 50;   // flange, along Z
-plug_cut_w     = 29;   // flange, along Y
+plug_cut_w     = 29;   // flange, along X
 plug_clr       =  0.6;
-plug_hole_pitch= 40;   // ear centres, along Y
+plug_hole_pitch= 40;   // ear centres, along X
 plug_hole_d    =  3.2;
-plug_pad_y     = 54;   // bezel is 48 wide — pad it out
+plug_pad_w     = 54;   // along the wall. Bezel is 48 - pad it out
 plug_pad_z     = 64;   // bezel is 58 tall
 plug_pad_t     =  4;   // 4 + 3 = 7 mm of thread for the ear screws
 
-plug_y = psu_y0 + psu_w + bay_w/2;   // centre of the bay
-plug_z = 36;                         // low, so the shield reaches the floor
+plug_x = out_l/2;      // CENTRED: a toroid sits either side of it, so the
+                       // primary leads reach it from both without crossing
+plug_z = 36;           // low, so the shield reaches the floor
 
-/* How far the flange and its terminals reach INSIDE, from the interior face of
-   the END B wall. The pad eats 7 mm of the 19 mm flange, so 12 intrudes, and
-   the booted spades add 12 behind that. This is what the shield has to cover. */
+/* How far the flange and its terminals reach INSIDE from the wall's inner
+   face. The pad eats 7 mm of the 19 mm flange, so 12 intrudes, and the booted
+   spades add 12 behind that. This is what the shield has to cover. */
 plug_reach = 12 + 12;
 
 /* DC output. PG7 gland or a rubber grommet; same wall, same bay. */
@@ -267,32 +274,28 @@ assert(mod_z + mod_bh/2 < out_h && mod_z - mod_bh/2 - mod_boss > 0,
 assert(lv_gland_y - lv_gland_d/2 > psu_y0 + psu_w,
        "LV gland is in the supply's shadow, not the bay.");
 
-/* --- the inlet and its shield, on END B ---------------------------------- */
-/* The inlet's flange has to land in the BAY. Anywhere else on END B the supply
-   is 3 mm behind the wall and 12 mm of flange cannot go there. */
-assert(plug_y - (plug_cut_w + plug_clr)/2 > psu_y0 + psu_w &&
-       plug_y + (plug_cut_w + plug_clr)/2 < out_w - wall,
-       "Inlet cutout is outside the bay - its flange would hit the supply.");
-/* The pad is a slab on the outside of END B: run it past the box in Y and it
-   hangs in mid-air with no wall behind it. */
-assert(plug_y + plug_pad_y/2 <= out_w && plug_y - plug_pad_y/2 >= 0,
-       "Inlet pad overhangs the side of the box. Narrow plug_pad_y.");
-assert(plug_y + plug_hole_pitch/2 < plug_y + plug_pad_y/2,
+/* --- the inlet and its shield, on the BACK wall -------------------------- */
+/* The pad is a slab on the OUTSIDE: run it off the end of the wall and it
+   hangs in mid-air with nothing behind it. */
+assert(plug_x + plug_pad_w/2 <= out_l && plug_x - plug_pad_w/2 >= 0,
+       "Inlet pad overhangs the end of the back wall. Move plug_x.");
+assert(plug_hole_pitch < plug_pad_w,
        "Inlet ear screws fall outside their own pad.");
 assert(plug_z - plug_pad_z/2 > 0 && plug_z + plug_pad_z/2 < out_h,
        "Inlet pad runs off the wall in Z.");
-/* The shield stands on the floor, so the terminals have to be low enough for it
-   to reach them, and it has to fit the bay it stands in. */
-assert(sh_y0 - sh_wall > psu_y0 + psu_w && sh_y1 + sh_wall < out_w - wall,
-       "Shield does not fit the bay. Widen bay_w or cut sh_clr.");
+/* The shield stands on the floor between the wall and the supply. */
+assert(sh_y1 + sh_wall < psu_y0,
+       "Shield is deeper than the back bay. Raise bay_back or cut sh_clr.");
 assert(sh_z1 + sh_wall < rim_z0,
        "Shield is taller than the box's clear height - lower plug_z.");
-assert(sh_notch_w < sh_y1 - sh_y0,
-       "Wire slot is wider than the shield's back wall.");
+assert(sh_notch_w < sh_x1 - sh_x0,
+       "Wire slot is wider than the shield's back face.");
 assert(sh_notch_h < sh_tab_z - floor_t,
        "Wire slot runs into the screw tabs. Raise sh_tab_z.");
-assert(sh_x0 - sh_wall - sh_tab_l > gland_x + gland_d,
-       "Shield or its tabs run into the DC output gland. Move gland_x.");
+assert(sh_tab_x[0] - sh_post_d/2 > wall && sh_tab_x[1] + sh_post_d/2 < out_l - wall,
+       "Shield tabs or posts run off the end of the bay.");
+assert(sh_tab_y + sh_post_d/2 < psu_y0,
+       "Shield posts are under the supply.");
 
 /* ---------------------------------------------------------------------------
    TUB
@@ -363,44 +366,47 @@ module grid_cuts() {
 }
 
 module plug_pad_solid() {
-    y0 = plug_y - plug_pad_y/2;
+    x0 = plug_x - plug_pad_w/2;
     z0 = plug_z - plug_pad_z/2;
     hull() {
-        translate([out_l - 0.01, y0, z0]) cube([0.01, plug_pad_y, plug_pad_z]);
-        translate([out_l + plug_pad_t, y0, z0 + plug_pad_t])
-            cube([0.01, plug_pad_y, plug_pad_z - plug_pad_t]);
+        translate([x0, 0.01, z0]) cube([plug_pad_w, 0.01, plug_pad_z]);
+        translate([x0, -plug_pad_t, z0 + plug_pad_t])
+            cube([plug_pad_w, 0.01, plug_pad_z - plug_pad_t]);
     }
 }
 
 module plug_cuts() {
     d = wall + plug_pad_t + 2;
-    translate([out_l - wall - 1,
-               plug_y - (plug_cut_w + plug_clr)/2,
+    translate([plug_x - (plug_cut_w + plug_clr)/2,
+               -plug_pad_t - 1,
                plug_z - (plug_cut_l + plug_clr)/2])
-        cube([d, plug_cut_w + plug_clr, plug_cut_l + plug_clr]);
-    for (dy = [-1, 1])
-        translate([out_l - wall - 1, plug_y + dy*plug_hole_pitch/2, plug_z])
-            rotate([0, 90, 0]) cylinder(d = plug_hole_d, h = d, $fn = hole_fn);
+        cube([plug_cut_w + plug_clr, d, plug_cut_l + plug_clr]);
+    for (dx = [-1, 1])
+        translate([plug_x + dx*plug_hole_pitch/2, -plug_pad_t - 1, plug_z])
+            rotate([-90, 0, 0]) cylinder(d = plug_hole_d, h = d, $fn = hole_fn);
 }
 
 /* ---------------------------------------------------------------------------
    MAINS SHIELD — a hood over the back of the inlet
    ---------------------------------------------------------------------------
    The inlet's spade terminals are the only exposed mains inside this box. With
-   the lid off they are a finger away, so they get a cover.
+   the lid off they are a finger away. This covers them.
 
-   It is a cup with TWO open faces: the one against the END B wall, where the
-   inlet comes through, and the BOTTOM, where it stands on the floor.
+   A cup with TWO open faces: the one against the back wall, where the inlet
+   comes through, and the BOTTOM, where it stands on the floor.
 
-   The wire slot is the whole point of the shape. The spades are crimped and
-   booted before the shield goes anywhere near them, so the wires cannot be
-   threaded through a closed hole — the hole has to be open on one side and
-   closed by something else afterwards. So the slot runs off the bottom edge of
-   the back wall: THREE of its sides are printed, and the FOURTH is the
-   enclosure floor once the shield is screwed down.
+   The wire slot is the whole point of the shape. The three spades are crimped
+   and booted before the shield goes near them, so the wires cannot be threaded
+   through a closed hole - the hole has to be open on one side and closed by
+   something else afterwards. So the slot runs off the bottom edge of the back
+   face: THREE of its sides are printed, and the FOURTH is the enclosure floor
+   once the shield is screwed down.
 
-   Print it on its BACK, the -x face flat on the bed. Every other wall is then
-   perpendicular to the bed and there is not one overhang in the part. */
+   Its screw tabs reach SIDEWAYS, not backwards. Backwards would put the posts
+   under a toroid; along the wall there is nothing but wall.
+
+   Print it on its back, the slotted face flat on the bed. Every other wall is
+   then perpendicular to the bed and there is not one overhang in the part. */
 sh_clr     = 5;      // around the inlet's envelope, for the boots
 sh_wall    = 2.5;
 sh_notch_w = 26;     // three booted spades side by side
@@ -411,53 +417,53 @@ sh_tab_l   = 12;
 sh_screw   = 3.2;    // M3 clearance through the tab
 sh_post_d  = 9;
 sh_post_p  = 2.6;    // M3 cutting its own thread
-sh_tab_dy  = 14;     // tab centres either side of the inlet
 
 /* Cavity: everything the inlet occupies inside, plus clearance. */
-sh_x1 = out_l - wall;                              // against the END B wall
-sh_x0 = sh_x1 - plug_reach - sh_clr;               // back face, inside
-sh_y0 = plug_y - (plug_cut_w/2 + sh_clr);
-sh_y1 = plug_y + (plug_cut_w/2 + sh_clr);
-sh_z1 = plug_z + plug_cut_l/2 + sh_clr;            // roof, inside
+sh_y0 = wall;                                   // against the back wall
+sh_y1 = sh_y0 + plug_reach + sh_clr;            // back face of the cup, inside
+sh_x0 = plug_x - (plug_cut_w/2 + sh_clr);
+sh_x1 = plug_x + (plug_cut_w/2 + sh_clr);
+sh_z1 = plug_z + plug_cut_l/2 + sh_clr;         // roof, inside
+sh_tab_y = (sh_y0 + sh_y1)/2;                   // tabs at mid-depth
+sh_tab_x = [sh_x0 - sh_wall - sh_tab_l/2, sh_x1 + sh_wall + sh_tab_l/2];
 
 module shield_posts() {
-    for (dy = [-1, 1])
-        translate([sh_x0 - sh_wall - sh_tab_l/2, plug_y + dy*sh_tab_dy, floor_t])
-            cylinder(d = sh_post_d, h = sh_tab_z - floor_t, $fn = $fn);
+    for (x = sh_tab_x)
+        translate([x, sh_tab_y, floor_t])
+            cylinder(d = sh_post_d, h = sh_tab_z - floor_t);
 }
 
 module shield_post_holes() {
-    for (dy = [-1, 1])
-        translate([sh_x0 - sh_wall - sh_tab_l/2, plug_y + dy*sh_tab_dy, sh_tab_z - 8])
+    for (x = sh_tab_x)
+        translate([x, sh_tab_y, sh_tab_z - 8])
             cylinder(d = sh_post_p, h = 9, $fn = hole_fn);
 }
 
 module shield() {
+    tw = sh_post_d + 3;
     difference() {
         union() {
-            // the cup: cavity grown by a wall on -x, both y and +z. Not on +x
-            // (the END B wall closes it) and not on -z (the floor does).
+            // the cup: open at -y (the wall closes it) and -z (the floor does)
             difference() {
-                translate([sh_x0 - sh_wall, sh_y0 - sh_wall, floor_t])
-                    cube([(sh_x1 - sh_x0) + sh_wall,
-                          (sh_y1 - sh_y0) + 2*sh_wall,
+                translate([sh_x0 - sh_wall, sh_y0, floor_t])
+                    cube([(sh_x1 - sh_x0) + 2*sh_wall,
+                          (sh_y1 - sh_y0) + sh_wall,
                           (sh_z1 - floor_t) + sh_wall]);
-                translate([sh_x0, sh_y0, floor_t - 1])
-                    cube([(sh_x1 - sh_x0) + 1, sh_y1 - sh_y0, sh_z1 - floor_t + 1]);
+                translate([sh_x0, sh_y0 - 1, floor_t - 1])
+                    cube([sh_x1 - sh_x0, (sh_y1 - sh_y0) + 1, (sh_z1 - floor_t) + 1]);
             }
-            // screw tabs, reaching back over the posts
-            for (dy = [-1, 1])
-                translate([sh_x0 - sh_wall - sh_tab_l,
-                           plug_y + dy*sh_tab_dy - sh_post_d/2 - 1.5,
-                           sh_tab_z])
-                    cube([sh_tab_l + sh_wall, sh_post_d + 3, sh_tab_t]);
+            // screw tabs, reaching sideways over the posts
+            translate([sh_x1, sh_tab_y - tw/2, sh_tab_z])
+                cube([sh_wall + sh_tab_l, tw, sh_tab_t]);
+            translate([sh_x0 - sh_wall - sh_tab_l, sh_tab_y - tw/2, sh_tab_z])
+                cube([sh_wall + sh_tab_l, tw, sh_tab_t]);
         }
         // the wire slot: open at the bottom, so the floor is its fourth side
-        translate([sh_x0 - sh_wall - 1, plug_y - sh_notch_w/2, floor_t - 1])
-            cube([sh_wall + 2, sh_notch_w, sh_notch_h + 1]);
+        translate([plug_x - sh_notch_w/2, sh_y1 - 1, floor_t - 1])
+            cube([sh_notch_w, sh_wall + 2, sh_notch_h + 1]);
         // tab clearance holes
-        for (dy = [-1, 1])
-            translate([sh_x0 - sh_wall - sh_tab_l/2, plug_y + dy*sh_tab_dy, sh_tab_z - 1])
+        for (x = sh_tab_x)
+            translate([x, sh_tab_y, sh_tab_z - 1])
                 cylinder(d = sh_screw, h = sh_tab_t + 2, $fn = hole_fn);
     }
 }
@@ -625,10 +631,10 @@ module lid() {
    plus the spade terminals and their boots is what set bay_w in the first
    place. */
 module ghost_plug() {
-    f = out_l + plug_pad_t;                                   // the pad's face
-    translate([f, plug_y - 24, plug_z - 29]) cube([5, 48, 58]);        // bezel
-    translate([f - 19, plug_y - 14.5, plug_z - 25]) cube([19, 29, 50]);// flange
-    translate([f - 31, plug_y - 14.5, plug_z - 25]) cube([12, 29, 50]);// terminals
+    f = -plug_pad_t;                                          // the pad's face
+    translate([plug_x - 24, f - 5, plug_z - 29]) cube([48, 5, 58]);      // bezel
+    translate([plug_x - 14.5, f, plug_z - 25]) cube([29, 19, 50]);       // flange
+    translate([plug_x - 14.5, f + 19, plug_z - 25]) cube([29, 12, 50]);  // terminals
 }
 module ghost_fan() {
     translate([-fan_pad_t - 10, fan_cy - 20, fan_cz - 20]) cube([10, 40, 40]);
@@ -661,15 +667,15 @@ echo(str("external  ", out_l, " x ", out_w, " x ", out_h + lid_t,
          "   (bed footprint ", out_l + fan_pad_t + plug_pad_t, " x ",
          out_w + mod_boss, ")"));
 echo(str("interior  ", in_l, " x ", in_w, " x ", in_h,
-         "   clear for the supply ", in_l, " x ", psu_w + clr_side, " x ", psu_h + head));
-echo(str("bay       ", bay_w, " wide, clear end to end - the plug left it"));
-echo(str("inlet     END B, bay centre y ", plug_y, ", z ", plug_z,
-         "; reaches ", plug_reach, " inside"));
-echo(str("shield    ", sh_x1 - sh_x0 + sh_wall, " x ",
-         sh_y1 - sh_y0 + 2*sh_wall, " x ", sh_z1 - floor_t + sh_wall,
+         "   clear for the supply ", in_l, " x ", psu_w, " x ", psu_h + head));
+echo(str("bays      back ", bay_back, " (mains only), front ", bay_w,
+         " (low voltage, clear end to end)"));
+echo(str("inlet     BACK wall, x ", plug_x, ", z ", plug_z,
+         "; reaches ", plug_reach, " inside a ", bay_back, " bay"));
+echo(str("shield    ", sh_x1 - sh_x0 + 2*sh_wall, " x ",
+         sh_y1 - sh_y0 + sh_wall, " x ", sh_z1 - floor_t + sh_wall,
          "; slot ", sh_notch_w, " x ", sh_notch_h,
-         " open to the floor; bay margin ",
-         min(sh_y0 - sh_wall - (psu_y0 + psu_w), (out_w - wall) - (sh_y1 + sh_wall))));
+         " open to the floor; gap to the supply ", psu_y0 - (sh_y1 + sh_wall)));
 echo(str("DC-DC     cutout ", mod_cut_w, " x ", mod_cut_h,
          " in a ", mod_panel_t, " panel; boss ", mod_boss,
          "; clear bay behind it ", bay_w + mod_boss - mod_depth));

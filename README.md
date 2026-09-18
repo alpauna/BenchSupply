@@ -34,12 +34,13 @@ depth only where its boss steps out.
 | Bay wall, between DC-DC and gland | **60 mm** of flat wall (x 106–166) | the largest unbroken panel span |
 | Bay wall, past the gland | **90 mm** (x 194–282) | the mains has left this wall entirely — it is all low voltage now |
 | Bay wall, END A end | 19 mm before the DC-DC | small stuff only |
-| Wiring bay, volume | **50 mm** wide × 279 long, less the DC-DC's 84 and the shield's 32 at END B | terminal blocks, DC distribution |
+| Front bay, volume | **50 mm** wide × 279 long, less the DC-DC's 84 | terminal blocks, DC distribution |
+| Back bay | **34 mm** × 279, less the shield's 44 in the middle | **mains only** — keep it that way |
 | Over the supply | 2 mm to the rim taper, 17 mm to the lid | nothing tall — raise `head` if you need a shelf |
 | Fan-end plenum | 10 mm × 195 × 98 | the air path. Do not fill it |
-| The lid | untouched | a flat 285 × 212 plate; panel-mount anything to it |
+| The lid | untouched | a flat 285 × 243 plate; panel-mount anything to it |
 | END A | the LV gland only | the rest of that wall is the fan and the plenum |
-| END B | **full** | grid in the supply's shadow, inlet in the bay corner. Nothing left |
+| END B | exhaust grid only | the inlet left; the bay corners either side of the grid are free again |
 
 **A buck module for the fan is no longer on that list** — the DC-DC covers the
 role, but *not* on its adjustable rail. See [The fan is not a load for the
@@ -53,7 +54,7 @@ adds a mm to the outside.
 the ceiling at about 290 including the pads — right where the tub already sits.
 The printer is now a **QIDI X-Plus 5: 320 × 320 × 300**, read from
 `Qidi X-Plus 5 0.4 nozzle.json` in QIDIStudio 02.07.02.60. Against the tub's
-current 294 × 212 that is **26 mm spare in X and 108 in Y**, so X is no longer
+current 294 × 243 that is **26 mm spare in X and 77 in Y**, so X is no longer
 the axis that stops you — height still is, and it is the one axis the bed does
 not help with.
 
@@ -61,30 +62,36 @@ not help with.
                  TOP VIEW  (285 long)
 
      END A                                      END B
-   +--------------------------------------------------+
+   +-------------------[ PLUG ]-----------------------+  <- BACK: mains only
+   |                   [shield]        34 mm bay      |
+   |--------------------------------------------------|
    |[FAN]                                       ######|
    |         power supply  266 x 153 x 77       ######|  <- exhaust grid
    |   intake -->  air over and under  -->  out ######|
-   |------------------------------------------- -----+
-   |(LV)           50 mm wiring bay          [SHIELD]|[PLUG]
-   +--------[ DC-DC ]------------[GLAND]-------------+
-        5 V + adj                 36 V out
+   |--------------------------------------------------|
+   |(LV)                               50 mm bay      |
+   +--------[ DC-DC ]------------[GLAND]--------------+  <- FRONT: low voltage
+             5 V + adj            36 V out
 ```
 
-The mains lives at **END B only** now — inlet on the end wall beside the grid,
-its terminals inside a printed shield that stands on the floor. The whole long
-wall is low voltage: see [the inlet and its
-shield](#the-inlet-moved-to-end-b--and-brought-a-shield).
+**Mains on the back wall, low voltage on the front.** The inlet is centred
+because **a toroidal transformer sits either side of it**, so the primary leads
+reach it from both without crossing. END B is nothing but exhaust grid now.
+
+The mains lives on the **back wall only** — inlet centred, its terminals inside
+a printed shield that stands on the floor. The front wall is all low voltage:
+see [the inlet and its
+shield](#the-inlet-is-on-the-back-wall--and-brought-a-shield).
 
 ## Dimensions
 
 | | |
 |---|---|
-| External | **285 × 212 × 106** mm |
-| Bed footprint, tub | **294 × 212** — the fan pad and the plug pad stand proud of the ends; the long walls are flat |
-| Bed footprint, lid | 285 × 212 |
+| External | **285 × 243 × 106** mm |
+| Bed footprint, tub | **294 × 243** — the fan pad stands proud of END A, the plug pad off the back wall |
+| Bed footprint, lid | 285 × 243 |
 | Clear space for the supply | **279 × 156 × 79** (the 266 × 153 × 77 minimum, with room) |
-| Wiring bay | **50 mm** wide alongside the supply, clear end to end |
+| Wiring bays | **back 34 mm** (mains only), **front 50 mm** (low voltage, clear end to end) |
 
 `openscad` echoes all of these on every render, so they follow the parameters
 rather than this table. Re-read them after changing anything.
@@ -205,7 +212,7 @@ proud of the panel, the spade terminals and their boots add more, and none of
 that can happen on the wall the supply is pressed against. So a channel ran down
 one long side.
 
-**The inlet has since moved to END B**, and the bay stayed — because two other
+**The inlet has since moved to the back wall**, and the front bay stayed — two other
 things now need it. The DC-DC is 25.4 mm deep behind its panel, and the mains
 shield is 44 mm wide. The shield is the binding one: 29 mm of flange, clearance
 for booted spades either side, a wall each side, and a 39 mm bay cannot hold it
@@ -215,23 +222,35 @@ At **50 mm** the shield fits with 3 mm a side, and the DC-DC gets 24.6 mm behind
 it on a flat wall — so `mod_boss` went to **0** and the bump on the outside of
 that wall disappeared. The box grew 11 mm in Y and lost a 12 mm boss, and the
 plug pad moved from the Y face to the X face: **the bed footprint went from
-290 × 213 to 294 × 212, which is no change worth the name.**
+290 × 213 to 294 × 212 at that point, which was no change worth the name.**
+(The back bay has since taken it to 294 × 243 — see the inlet section.)
 
 `gland_x` is a parameter. Slide it along the wall to land beside the supply's
-own DC output terminals — but keep it clear of the shield, which owns the END B
-end of the bay. The `.scad` asserts that for you.
+own DC output terminals. The shield no longer competes for this bay at all —
+it moved to the back with the inlet — so the front wall is clear end to end.
 
-## The inlet moved to END B — and brought a shield
+## The inlet is on the back wall — and brought a shield
 
-### There is exactly one place on END B it can go
+### The back wall was blank because it had no depth
 
-Not a free choice. Everywhere along END B the supply sits **3 mm** behind the
-wall, and 12 mm of intruding flange plus 12 mm of booted terminals cannot live
-in 3 mm. The one exception is the bay's corner, where the channel runs past the
-end of the supply and there is depth all the way down the box.
+That wall had nothing on it, which is exactly why it was the one to use — and
+exactly why it could not be used as drawn. The supply sat **3 mm** behind it,
+and 12 mm of intruding flange plus 12 mm of booted terminals does not go in
+3 mm. `bay_back` is what buys the room: **34 mm**, which leaves 2.5 mm between
+the shield and the supply.
 
-The exhaust grid occupies the supply's shadow — exactly the part of that wall
-the inlet cannot use — so the two do not compete. The inlet sits beside it.
+**It is cheaper on this wall than it was at END B.** There the shield's 44 mm
+*width* had to fit across the bay, so the bay had to be 50. On a long wall the
+width runs along the wall, which is free, and only the 31.5 mm of depth costs
+anything. The box went 212 → **243** in Y for it, and the bed footprint to
+294 × 243 — comfortable on a 320 bed.
+
+What it buys back: the mains now has a wall to itself, the front wall is all
+low voltage — the DC-DC's screen and knob, the outputs — and **END B is nothing
+but exhaust grid**, which is better for the air than having a shield parked in
+the bay at the hot end.
+
+`plug_x` is centred, and stays centred: **a toroid sits either side of it.**
 
 ### And it sits low, which is the shield's doing
 
@@ -241,12 +260,10 @@ side of its wire slot. That only works if the terminals are near the floor, so
 shield underneath for the wires to turn in.
 
 It is still mounted **58 mm axis vertical**, so the rocker is at the top and the
-fuse drawer pulls out below it. One consequence of the move: the M3 ears are at
-40 mm centres, which is **wider than the 50 mm bay minus its walls**, so they no
-longer land in the bay — they land in the solid wall either side of it. That is
-fine, and it is why `plug_pad_y` has to stay inside the box: the pad is a slab
-on the *outside* of END B, and running it past the corner leaves it hanging in
-mid-air with no wall behind it. The `.scad` asserts that too.
+fuse drawer pulls out below it. The pad is a slab on the *outside* of the back
+wall, so `plug_pad_w` has to stay within the wall's length or it hangs in
+mid-air with nothing behind it — the `.scad` asserts that, though with 285 mm of
+wall and a 54 mm pad there is no danger.
 
 ### The shield: two open faces, and a slot that is open at the bottom
 
@@ -504,9 +521,10 @@ Re-run `render.sh` after any change and do not read anything into the diff.
 | `boss_d` | 9 | lid screw engagement. Heat-set inserts? 7 is enough |
 | `lid_screw` | 2.6 | M3 self-tapping pilot. Heat-set M3 insert: **4.2** |
 | `fan_guard` | true | concentric webs over the fan bore |
-| `plug_y`, `plug_z` | bay centre, 36 | where the inlet lands on END B. **Low, so the shield reaches the floor** |
+| `plug_x`, `plug_z` | **centre**, 36 | where the inlet lands on the back wall. Centred for the toroids either side; low so the shield reaches the floor |
 | `gland_x` | −105 | where the 36 V output leaves the bay wall |
-| `bay_w` | **50** | set by the shield now, not the plug |
+| `bay_w` | **50** | front bay — low voltage. Set by the DC-DC now |
+| `bay_back` | **34** | back bay — mains only. Set by the shield's depth |
 | `sh_clr`, `sh_wall` | 5, 2.5 | shield clearance round the terminals, and its wall |
 | `sh_notch_w/h` | 26, 14 | the wire slot. Its fourth side is the floor |
 | `sh_tab_z` | 20 | screw tabs, high enough to clear the slot |
