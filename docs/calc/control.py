@@ -134,6 +134,20 @@ print("""  Three 40 mm fans give 9-15 CFM installed - right for 100 W at a 15 K 
   A box dissipating 100 W with no fans because the Pico is halted, or because
   someone is reflashing it, is a fire - not a bug.
 
-  Fans want 12 V, the Pico wants 5, and neither can come off an adjustable
-  channel. That is a small auxiliary mains supply: 12 V for fans, 5 V derived
-  for the Pico.""")
+  Fans are 5 V, so there is no 12 V rail in the box. One 120 V -> 5 V module
+  runs the Pico, the fans and the opto LEDs.""")
+
+print("\n=== The 5 V control rail ===")
+loads=[("Pico",0.100),("3 x 5 V 40 mm fans",0.600),("opto LEDs 10 x 5 mA",0.050)]
+tot=sum(i for _,i in loads)
+for n,i in loads: print(f"  {n:<26} {i*1000:>5.0f} mA")
+print(f"  {'TOTAL':<26} {tot*1000:>5.0f} mA = {tot*5:.1f} W")
+for w in (5,10):
+    print(f"    {w:>2} W module -> {w/5:.1f} A, {w/5/tot:.1f}x headroom"
+          f" {'MARGINAL' if w/5 < tot*1.4 else 'comfortable'}")
+print("  It must NOT power the isolated sides - that would wire the two")
+print("  channels together. Each powers itself off its own 40 V rail, or off")
+print("  its controller's bias output.")
+need = 100/(1.2*1005*15)*2118.9
+print(f"\n  Airflow needed {need:.1f} CFM. Three 5 V 40 mm fans give ~7.5")
+print("  installed - check the real fans, and prefer 60 mm if they are short.")

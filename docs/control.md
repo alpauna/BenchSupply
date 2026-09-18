@@ -272,12 +272,56 @@ is powered and let the Pico stage 2 and 3. A box dissipating 100 W with no fans
 because the Pico is halted — or because someone is reflashing it — is a fire,
 not a bug.
 
-### The auxiliary supply
+### The auxiliary supply: one 5 V module off the mains
 
-Fans want 12 V, the Pico wants 5, and **neither can come off an adjustable
-channel** — the same argument as [not putting the fan on the adjustable
-rail](../README.md#the-fan-is-not-a-load-for-the-adjustable-rail). That means a
-small auxiliary mains module: 12 V for the fans, 5 V derived for the Pico.
+**5 V fans settle it** — there is no 12 V rail in the box at all. A single
+off-the-shelf 120 V → 5 V module runs the Pico, the fans and the opto LEDs.
+Neither can come off an adjustable channel, for the same reason as [not putting
+the fan on the adjustable
+rail](../README.md#the-fan-is-not-a-load-for-the-adjustable-rail): the user can
+turn that rail down.
+
+```
+  Pico (RP2040, no radio)                      100 mA
+  3 x 5 V 40 mm fans @ ~200 mA                 600 mA
+  opto LEDs, 10 x 5 mA (worst case all on)      50 mA
+  TOTAL                                        750 mA = 3.8 W
+
+  5 W module  -> 1.0 A, 1.3x headroom   MARGINAL
+  10 W module -> 2.0 A, 2.7x headroom   comfortable
+```
+
+**Buy the 10 W, not the 5.** The fans dominate and they draw their worst at
+startup, all three at once if the box comes up hot.
+
+Give the fans their own decoupling, or their own feed from the module. Brushed
+or not, fan commutation puts spikes on the rail, and the Pico's ADC is reading
+millivolts of shunt signal.
+
+### What the module must NOT power: the isolated sides
+
+Each channel's switch chip, ADC and sense amp sit on **that channel's ground**.
+Feeding them from the control 5 V rail wires the two channels together and
+undoes the isolation the second transformer was bought for.
+
+They power themselves locally, and it costs nothing: each channel already has
+its own ~40 V raw rail from its own toroid, isolated from the other by
+construction. Either a small 60 V-capable buck per channel, or — check this
+first — **the switching controller's own VCC/bias output**, which on many parts
+can spare the tens of milliamps this needs.
+
+### Check the fans actually move the air
+
+```
+  needed: 11.7 CFM for 100 W at a 15 K rise
+  12 V 40 mm: ~8 CFM free, ~4.0 installed -> 3 of them = 12.0 CFM   OK
+   5 V 40 mm: ~5 CFM free, ~2.5 installed -> 3 of them =  7.5 CFM   SHORT
+```
+
+A 5 V fan of a given size spins slower than its 12 V cousin, so **three 5 V
+40 mm fans may not reach the number**. Check the CFM on the fans actually in
+hand against 11.7. If they are short, the answer is 60 mm rather than a fourth
+40 — more area at lower RPM is quieter as well as better.
 
 ## Open
 
